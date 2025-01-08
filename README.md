@@ -27,7 +27,6 @@ Once the model produces output files, these are stored and made accessible for a
 ├── input_files/            # Directory for Excel input files
 ├── output_files/           # Directory for storing model output files
 ├── scripts/                # Python scripts for each pipeline step
-│   ├── read_excel.py       # Reads and processes Excel files
 │   ├── convert_to_yaml.py  # Converts Excel data to YAML
 │   ├── upload_to_s3.py     # Uploads YAML files to AWS S3
 │   ├── api_endpoint.py     # Serves files via an API
