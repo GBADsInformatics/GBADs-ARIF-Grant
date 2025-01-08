@@ -28,7 +28,6 @@ keys = list(map(str, keys))
 df_val = df.iloc[:,2:]
 
 for (col_name, col_data) in df_val.items():
-    # print(col_name) # yaml file
     filename = out_path + col_name + ".yaml"
     print(filename)
     file = open(filename, "a")
@@ -51,5 +50,4 @@ for (col_name, col_data) in df_val.items():
             line = keys[idx] + ": " + val
         line = line + "\n"
         file.write(line)
-        # print(line)
     file.close()
