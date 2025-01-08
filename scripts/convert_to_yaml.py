@@ -7,7 +7,16 @@ nruns: 10000
 seed_value: NULL\n
 '''
 
+
+if len(sys.argv) != 3: 
+    sys.exit(1)
+
 excel_fp = sys.argv[1]
+out_path = sys.argv[2]
+
+# FIXME determine whether there is a slash at the end of outpath 
+# Check to see if the outpath is actually valid -- also this eventually 
+# needs to redirect to s3 
 
 df = pd.read_excel(excel_fp)
 
@@ -17,8 +26,9 @@ keys = list(map(str, keys))
 df_val = df.iloc[:,2:]
 
 for (col_name, col_data) in df_val.items():
-    print(col_name) # yaml file
-    filename = "" + col_name + ".yaml"
+    # print(col_name) # yaml file
+    filename = out_path + col_name + ".yaml"
+    print(filename)
     file = open(filename, "a")
     header = f"##### {col_name} #####\n"
     file.write(header)
