@@ -1,0 +1,140 @@
+##### cattle_trial_CLM_current #####
+
+Species: cattle
+nruns: 10000
+Num_months: 12
+
+### Initial population ###
+
+N_NF_t0: 4185804
+N_NM_t0: 4658857
+N_JF_t0: 4472291
+N_JM_t0: 5481069
+N_AF_t0: 16726643
+N_AM_t0: 2159425
+N_O_t0: 17363582
+
+### Growth ###
+
+Beta_N: 0.08
+Beta_J: 0.04
+
+### Fertility ###
+
+part: rpert(10000, 0.49, 0.56, 0.525)
+prolif: rtruncnorm(10000, 0, 1.1, 1, 0.0015)
+
+### Lactation ###
+
+prop_F_milked: 1
+lac_duration: 210
+avg_daily_yield_ltr: rpert(10000, 1.45, 1.482, 1.47)
+milk_value_ltr: 31
+
+### Draught power ###
+
+castration_rate: 0.01875
+draught_rate: 0.219178082
+draught_day_value: 136.7
+
+### Offtake ###
+
+GammaNF: 0
+GammaNM: 0
+GammaJF: 0.001545167
+GammaJM: 0
+GammaAF: 0.00588333
+GammaAM: 0.0075
+GammaO: 0.0075
+
+### Mortality ###
+
+AlphaN: rpert(10000, 0.09/12, 0.26/12, 0.12/12)
+AlphaJ: rpert(10000, 0.06/12, 0.09/12, 0.075/12)
+AlphaF: rpert(10000, 0.06/12, 0.09/12, 0.075/12)
+AlphaM: rpert(10000, 0.01/12, 0.01/12, 0.01/12)
+AlphaO: rpert(10000, 0.01/12, 0.01/12, 0.01/12)
+
+### Culls ###
+
+CullF: 0.009259259
+CullM: 0.016666667
+CullO: 0.016666667
+
+### Liveweight conversion (kg) ###
+
+lwNF: rpert(10000, 22, 120, 90)
+lwNM: rpert(10000, 23, 150, 90)
+lwJF: rpert(10000, 90, 280, 160)
+lwJM: rpert(10000, 100, 320, 170)
+lwAF: rpert(10000, 150, 340, 240)
+lwAM: rpert(10000, 170, 400, 255)
+lwO: rpert(10000, 170, 400, 255)
+
+### Carcass yield ###
+
+ccy: 0.5
+
+### Financial value of live animals ###
+
+fvNF: rpert(10000, 10876, 11616, 11088)
+fvJF: rpert(10000, 13200, 17793, 16896) 
+fvAF: rpert(10000,  18480,  27825,  23337)
+fvNM: rpert(10000, 9345, 17793, 9556)
+fvJM: rpert(10000, 17160, 20750, 20592)
+fvAM: rpert(10000, 15840,  49104, 33475)
+fvO: rpert(10000, 15840,  49104, 33475)
+
+### Skin/hides ###
+
+hides_rate: 1
+hides_rate_mor: 0.5
+hides_value: rpert(10000, (2.19*12.5), (9*12.5), (5.4*12.5))
+
+### Manure rates (kg produces/animal/day) ###
+
+Man_N: rpert(10000, 0.5, 0.8, 0.65)
+Man_J: rpert(10000, 0.8,  1.5, 1.15)
+Man_A: rpert(10000,  1.5, 2.3, 1.9)
+Man_value: 0.5
+
+### Dry matter requirements as proportion of liveweight ###
+
+DM_req_prpn_NF: 0.026
+DM_req_prpn_NM: 0.026
+DM_req_prpn_JF: 0.026
+DM_req_prpn_JM: 0.026
+DM_req_prpn_AF: 0.026
+DM_req_prpn_AM: 0.026
+DM_req_prpn_O: 0.026
+
+### Proportion of livestock keepers that spend any money on feed ###
+
+prpn_lskeepers_purch_feed: 0.25
+
+### For those spending any money on feed, the proportion of feed that is purchased ###
+
+prpn_feed_paid_for: 0.5
+
+Feed_cost_kg: rpert(10000, 2.5, 6.5, 3.46)
+
+### amount of dry matter in wheat and barley and tef in Ethiopia ###
+
+DM_in_feed: rpert(10000, 0.85, 0.95, 0.9)
+
+### Labour costs ###
+
+Labour_cattle: rpert(10000, (260/12), (649/12), (368/12))
+lab_non_health: 1
+Labour_Oxen: rpert(10000, (260/12), (649/12), (368/12))
+Labour_dairy: rpert(10000, (260/12), (649/12), (368/12))
+
+### Healthcare costs ###
+
+Health_exp_prev: runif(10000, (58/12), (58/12))
+Health_exp_treatment: runif(10000, (58/12), (58/12))
+
+### Capital costs ###
+
+Interest_rate: 0
+Infrastructure_per_head: 1

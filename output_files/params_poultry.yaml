@@ -1,0 +1,106 @@
+##### Village_indigenous_current #####
+
+Species: poultry
+nruns: 10000
+Num_months: 12
+
+## Initial Population ##
+
+N_NF_t0: 6500452
+N_NM_t0: 6500452
+N_JF_t0: 4494530
+N_JM_t0: 2271004
+N_AF_t0: 15370820
+N_AM_t0: 4431227
+
+## Growth ##
+
+Beta_N: 0.50
+Beta_J: 0.33
+
+## Fertility ##
+
+prop_females_laying: 0.88
+lay_rate: rpert(10000, (0.17*30), (0.315*30), (0.24*30))
+egg_brood_rate: 0.51
+egg_sale_rate: 0.23
+egg_consumption_rate: 0.2
+hatch_rate: 0.82
+egg_price: 0.82
+
+## Offtake ##
+
+GammaNF: 0
+GammaNM: 0
+GammaJF: 0
+GammaJM: 0
+GammaAF: 0.3964
+GammaAM: 0.6036
+
+## Mortality ##
+
+AlphaN: 0.2870
+AlphaJ: rpert(10000, 0.12/4, 0.25/4, 0.185/4)
+AlphaF: 0.1500
+AlphaM: rpert(10000, 0.15, 0.22, 0.185)
+
+## Culls ##
+
+CullF: 0.02173913
+CullM: 0.023255814
+
+## Liveweight conversion (kg) ##
+
+lwNF: rpert(10000, 0.0271, 0.18, 0.09)
+lwNM: rpert(10000, 0.0271, 0.18, 0.09)
+lwJF: rpert(10000, 0.59, 0.8, 0.7)
+lwJM: rpert(10000, 0.59, 0.8, 0.7)
+lwAF: rpert(10000, 1.3, 1.6, 1.45)
+lwAM: rpert(10000, 0.987, 1.75, 1.55)
+
+## Carcass yield ## 
+
+ccy: 0.69
+
+## Financial value of live animals ##
+
+fvNF: 32
+fvJF: 86.4
+fvAF: 118.4
+fvNM: 32
+fvJM: 86.4
+fvAM: 150.4
+
+## ## total feed intake  requirements per month for growers ##
+
+feed_req_prpn_NF: 1.175833333
+feed_req_prpn_NM: 1.175833333
+feed_req_prpn_JF: 2.416833333
+feed_req_prpn_JM: 2.351666667
+feed_req_prpn_AF: 3
+feed_req_prpn_AM: 3.75
+
+## Proportion of livestock keepers that spend any money on feed ##
+
+prpn_lskeepers_purch_feed: 0.94
+
+## ## For those spending any money on feed, the proportion of feed that is purchased #3
+
+prpn_feed_paid_for: 0.02
+Feed_cost_kg: 29.5
+DM_in_feed: 0.95
+
+## Labour ##
+
+Labour_poultry: 0
+lab_non_health: 0.85
+
+## Healthcare cost ##
+
+Health_exp_prev: 0
+Health_exp_treatment: 0
+
+# Capital costs ##
+
+Interest_rate: 0
+Infrastructure_per_head: 0
