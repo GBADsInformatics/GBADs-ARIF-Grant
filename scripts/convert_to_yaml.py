@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+from pathlib import Path
 
 extras = '''
 species: smallruminants
@@ -7,18 +8,19 @@ nruns: 10000
 seed_value: NULL\n
 '''
 
-
 if len(sys.argv) != 3: 
     sys.exit(1)
 
 excel_fp = sys.argv[1]
 out_path = sys.argv[2]
 
-# FIXME determine whether there is a slash at the end of outpath 
-# Check to see if the outpath is actually valid -- also this eventually 
-# needs to redirect to s3 
+if Path(excel_fp).is_file():
+    df = pd.read_excel(excel_fp)
+else: 
+    sys.exit("File %s does not exist. Please provide a valid file." % excel_fp)
 
-df = pd.read_excel(excel_fp)
+if Path(out_path).is_dir() == False:
+    sys.exit("Directory %s does not exist. Please provide a valid path for output files." % out_path)
 
 keys = df["AHLE Parameter"].tolist()
 keys = list(map(str, keys))
