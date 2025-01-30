@@ -14,9 +14,17 @@ Once the model produces output files, these are stored and made accessible for a
 3. **Model Integration**: Provide the YAML files to the model.
 4. **Output Handling**: Store the model's output files and make them available for the dashboard developer.
 
-### **Pipeline Diagram**
+### **User Flow Diagram**
 
-![SystemDiagram](diagrams/SystemDiagram.png)
+There are two "versions" of how users will be expected to interact with the system. 
+
+#### Online Version 
+
+![SystemDiagram](diagrams/userFlowDiagramOnlineVersion.png)
+
+#### Desktop Version 
+
+Diagram to be added. This version assumes no internet connection.
 
 ---
 
