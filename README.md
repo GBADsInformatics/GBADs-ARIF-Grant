@@ -45,6 +45,18 @@ Diagram to be added. This version assumes no internet connection.
 
 Note that the repository structure includes a directory for input and output files; these are for tests. Actual input and output files will be stored in S3. 
 
+### Updates to input_files/
+
+Input files are updated according to changes to the overall flow the work. The readme has to be updated however I am adding the details here for now: 
+
+* Sample DPM Files 
+These files are outputs from the model. The following naming convention/mapping follows: 
+
+"cattle_trial_CLM_current" is cattle
+"CLM_S_Current" is small ruminants
+"Cluster_1_Current" is equids
+"Village_indigenous_current" is poultry
+
 ---
 ## API Usage
 
