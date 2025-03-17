@@ -7,6 +7,9 @@ download_template <- function(species = c("cattle","poultry","small_ruminants"))
   
   species <- match.arg(species)
   
+  data_dictionary_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250317_DataDictionary_Placeholder.xlsx"
+  instructions_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250317_UserInstructions.pdf"
+  
   template_urls <- list(
     cattle = "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_cattle.xlsx",
     poultry = "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_poultry.xlsx",
@@ -21,7 +24,15 @@ download_template <- function(species = c("cattle","poultry","small_ruminants"))
   
   download.file(url = template_urls[[species]],
                 destfile = dest_files[[species]],
-                method="curl")
+                method = "curl")
+  
+  download.file(url = data_dictionary_url,
+                destfile = "data_dictionary.xlsx",
+                method = "curl")
+  
+  download.file(url = instructions_url,
+                destfile = "instructions.pdf",
+                method = "curl")
   
 }
 
