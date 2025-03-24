@@ -1,5 +1,5 @@
 library("paws")
-library("requests")
+library("httr2")
 
 create_client <- function(aws_access_key, aws_secret_key){
   
