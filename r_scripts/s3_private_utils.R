@@ -1,9 +1,11 @@
 library("paws")
 
-# Note that to make this work you need to first ensure that you set your sys.env 
-# credentials using the secret keys in aws 
-
-create_client <- function(){
+create_client <- function(aws_access_key, aws_secret_key){
+  
+  #' Create client for aws s3 access
+  #' @param aws_access_key (string) access key for accessing private s3 bucket
+  #' @param aws_secret_key (string) secret key for accessing private s3 bucket
+  #' @returns returns client 
   
   s3 <- paws::s3()
   
@@ -22,9 +24,13 @@ create_client <- function(){
   
 }
 
-get_object_url <- function(bucket_name, file_name){ 
+get_object_url <- function(bucket_name, file_name, svc){ 
   
-  # The key here is the name of the file that you want to give the user access to.
+  #' Generate pre signed url for a given bucket and file name for getting access to an object in s3
+  #' @param bucket_name Name of the bucket that you want to give the user access to
+  #' @param file_name Name of the key (file) that you want to give the user access to
+  #' @param svc client
+  #' @return A url is returned, providing access to the object in the bucket. 
 
   url <- svc$generate_presigned_url(
     client_method = "get_object",
@@ -36,9 +42,13 @@ get_object_url <- function(bucket_name, file_name){
   
 }
 
-put_object_url <- function(bucket_name, file_name){
+put_object_url <- function(bucket_name, file_name, svc){
   
-  # The key has to be the name of the file that you want to be able to write to.
+  #' Generate pre signed url for a given bucket and file name for putting objects in a bucket in s3
+  #' @param bucket_name Name of the bucket that you want to give the user access to
+  #' @param file_name Name of the key (file) that you want to give the user access to
+  #' @param svc Client
+  #' @return A url is returned, which can be used to put objects in the bucket
 
   url <- svc$generate_presigned_url(
     client_method = "put_object",
