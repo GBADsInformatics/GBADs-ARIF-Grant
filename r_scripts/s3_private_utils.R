@@ -1,4 +1,5 @@
 library("paws")
+library("requests")
 
 create_client <- function(aws_access_key, aws_secret_key){
   
@@ -13,8 +14,8 @@ create_client <- function(aws_access_key, aws_secret_key){
     config = list(
       credentials = list(
         creds = list(
-          access_key_id = "your AWS access key",
-          secret_access_key = "your AWS secret key"
+          access_key_id = aws_access_key,
+          secret_access_key = aws_secret_key
         )
       )
     )
@@ -57,4 +58,13 @@ put_object_url <- function(bucket_name, file_name, svc){
     expires_in=3600,
     http_method = NULL)
 }
+
+upload_put_url <- function(url, file_path){
+  
+  # Need to figure out error handling in R for this.
+  PUT(url, body = list(upload_file(system.file(file_path))))
+  
+}
+
+
 
