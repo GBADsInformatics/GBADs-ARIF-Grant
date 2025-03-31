@@ -1,5 +1,5 @@
 library("paws")
-library("httr2")
+library("httr")
 
 create_client <- function(aws_access_key, aws_secret_key){
   
@@ -12,12 +12,14 @@ create_client <- function(aws_access_key, aws_secret_key){
   
   svc <- s3(
     config = list(
+      signature_version = 's3v4',
       credentials = list(
         creds = list(
           access_key_id = aws_access_key,
           secret_access_key = aws_secret_key
         )
-      )
+      ),
+      region = "us-east-2"
     )
   )
   
@@ -62,7 +64,7 @@ put_object_url <- function(bucket_name, file_name, svc){
 upload_put_url <- function(url, file_path){
   
   # Need to figure out error handling in R for this.
-  PUT(url, body = list(upload_file(system.file(file_path))))
+  httr::PUT(url, body = file_path)
   
 }
 
