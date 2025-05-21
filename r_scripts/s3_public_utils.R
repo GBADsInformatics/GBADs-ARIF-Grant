@@ -35,5 +35,3 @@ download_template <- function(species = c("cattle","poultry","small_ruminants"))
                 method = "curl")
   
 }
-
-

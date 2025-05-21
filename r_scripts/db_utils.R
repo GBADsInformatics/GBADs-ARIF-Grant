@@ -1,7 +1,7 @@
 library(DBI)
 library(config)
 
-source('queries.R')
+#source('queries.R')
 
 db_connect <- function() {
   
