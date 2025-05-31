@@ -60,15 +60,34 @@ These files are outputs from the model. The following naming convention/mapping 
 ---
 ## API Usage
 
-### **Endpoint: Get YAML File**
+To run the API locally: 
 
-FIXME: To be added; 
+```
+uvicorn upload_to_s3:app --reload
+```
 
-- URL:
-- Method:
-- Description:
+There is a functional API for uploading and downloading files to and from S3 buckets. 
 
-Example Request:
+Example curl requests for upload: 
+
+```
+curl -X POST "http://127.0.0.1:8000/upload" \
+  -F "bucket_name=<bucketname>" \
+  -F "object_name=<nameofobject>" \          
+  -F "file=@<pathtofiletobeuploaded>"
+```
+
+Example of curl requests for download:
+
+```
+curl -X GET "http://127.0.0.1:8000/download?bucket_name=my-bucket&object_name=path/to/file.txt" --output downloaded_file.txt
+```
+
+Example of API call for download:
+
+```
+http://127.0.0.1:8000/download?bucket_name=my-bucket&object_name=somefile.txt
+```
 
 
 ---
