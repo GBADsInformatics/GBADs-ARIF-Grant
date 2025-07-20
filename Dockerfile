@@ -42,6 +42,9 @@ COPY . /srv/shiny-server/
 COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
 COPY entrypoint.sh /entrypoint.sh
 
+# Make the entrypoint script executable
+RUN chmod +x /entrypoint.sh
+
 # Setup permissions
 RUN mkdir -p /srv/shiny-server/account_Portal/app_cache && \
     chown -R shiny:shiny /srv/shiny-server/account_Portal
