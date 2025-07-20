@@ -79,6 +79,23 @@ Example Request:
 
 ---
 
+## Running Docker
+
+Build the container:
+
+```
+docker build -t arif-app .
+```
+
+Run the container:
+
+```
+docker run -p 3838:80 arif-app
+```
+
+
+---
+
 ## Contributors
 - Kassy Raymond 
 
