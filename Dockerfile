@@ -1,9 +1,8 @@
 # Use the Rocker Shiny base image
 FROM rocker/shiny
 
-# Install system dependencies (including PostgreSQL dev libs for RPostgres)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    --no-install-recommends \
     git-core \
     libssl-dev \
     libcurl4-gnutls-dev \
@@ -13,10 +12,12 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libpq-dev \
     build-essential \
+    python3 \
+    python3-pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install R packages via install2.r (from littler) with error handling and skipping already installed packages
+# Install R packages
 RUN install2.r --error --skipinstalled \
     shiny \
     fresh \
@@ -33,16 +34,20 @@ RUN install2.r --error --skipinstalled \
     httr \
     RPostgres
 
-# Copy your Shiny app code to the default directory for Shiny Server
+# Install Python packages (override PEP 668 protection)
+RUN pip3 install --break-system-packages requests
+
+# Copy app and config
 COPY . /srv/shiny-server/
 COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
+COPY entrypoint.sh /entrypoint.sh
 
-# Create the app cache directory and give ownership to shiny user
+# Setup permissions
 RUN mkdir -p /srv/shiny-server/account_Portal/app_cache && \
     chown -R shiny:shiny /srv/shiny-server/account_Portal
 
-# Set environment variable (optional)
+# Set environment variable
 ENV _R_SHLIB_STRIP_=true
 
-# Run the Shiny server
-CMD ["/usr/bin/shiny-server"]
+# Entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
