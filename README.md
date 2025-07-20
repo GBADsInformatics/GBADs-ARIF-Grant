@@ -84,13 +84,13 @@ Example Request:
 Build the container:
 
 ```
-docker build -t arif-app .
+docker build -t account-portal .
 ```
 
 Run the container:
 
 ```
-docker run -p 3838:80 arif-app
+docker run -p 3838:80 account-portal
 ```
 
 
