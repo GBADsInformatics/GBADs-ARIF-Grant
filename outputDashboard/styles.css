@@ -135,3 +135,13 @@
     box-shadow: none;
     margin-top: -15px;
 }
+
+.invalid-input {
+  border-color: red !important;
+}
+
+.warning-text {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 5px;
+}

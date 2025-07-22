@@ -67,8 +67,7 @@ colours <- c(
 )
 
 # Plots -------------------------------------------------------------------
-
-populationBar <- function(){
+populationBar <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -86,7 +85,7 @@ populationBar <- function(){
 }
 
 
-populationBarSex <- function(){
+populationBarSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -110,7 +109,7 @@ populationBarSex <- function(){
 }
 
 
-populationStackedCountSex <- function(){
+populationStackedCountSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -141,7 +140,7 @@ populationStackedCountSex <- function(){
 }
 
 
-populationStackedPercentSex <- function(){
+populationStackedPercentSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -172,7 +171,7 @@ populationStackedPercentSex <- function(){
 }
 
 
-populationStackedCountAge <- function(){
+populationStackedCountAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -203,7 +202,7 @@ populationStackedCountAge <- function(){
 }
 
 
-populationStackedPercentAge <- function(){
+populationStackedPercentAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -234,7 +233,7 @@ populationStackedPercentAge <- function(){
 }
 
 
-populationPieSex <- function(){
+populationPieSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -279,7 +278,7 @@ populationPieSex <- function(){
 }
 
 
-populationPieAge <- function(){
+populationPieAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Num_", X) & !grepl("_offtake", X) & !grepl("_N", X)) %>% 
     mutate(Sex = case_when(
@@ -324,7 +323,7 @@ populationPieAge <- function(){
 }
 
 
-mortalityBar <- function(){
+mortalityBar <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -340,7 +339,7 @@ mortalityBar <- function(){
 }
 
 
-mortalityBarSex <- function(){
+mortalityBarSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -364,7 +363,7 @@ mortalityBarSex <- function(){
 }
 
 
-mortalityStackedCountSex <- function(){
+mortalityStackedCountSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -395,7 +394,7 @@ mortalityStackedCountSex <- function(){
 }
 
 
-mortalityStackedPercentSex <- function(){
+mortalityStackedPercentSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -426,7 +425,7 @@ mortalityStackedPercentSex <- function(){
 }
 
 
-mortalityStackedCountAge <- function(){
+mortalityStackedCountAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -457,7 +456,7 @@ mortalityStackedCountAge <- function(){
 }
 
 
-mortalityStackedPercentAge <- function(){
+mortalityStackedPercentAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -488,7 +487,7 @@ mortalityStackedPercentAge <- function(){
 }
 
 
-mortalityPieSex <- function(){
+mortalityPieSex <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -533,7 +532,7 @@ mortalityPieSex <- function(){
 }
 
 
-mortalityPieAge <- function(){
+mortalityPieAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_mortality_", X)) %>% 
     mutate(Sex = case_when(
@@ -578,7 +577,7 @@ mortalityPieAge <- function(){
 }
 
 
-liveweightBarCount <- function(){
+liveweightBarCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Quantity_liveweight_kg_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -594,7 +593,7 @@ liveweightBarCount <- function(){
 }
 
 
-populationGrowthBarCount <- function(){
+populationGrowthBarCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Pop_growth_", X)) %>%
     mutate(X = format_x_labels(X))
@@ -612,7 +611,7 @@ populationGrowthBarCount <- function(){
 }
 
 
-populationGrowthBarPercent <- function(){
+populationGrowthBarPercent <- function(data){
   plot.df <- data %>%
     filter((grepl("Pop_growth_", X) | grepl("Num_", X)) &
              !grepl("_offtake", X) & 
@@ -644,7 +643,7 @@ populationGrowthBarPercent <- function(){
 }
 
 
-productionManureCount <- function(){
+productionManureCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Quantity_manure_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -660,7 +659,7 @@ productionManureCount <- function(){
 }
 
 
-productionHideCount <- function(){
+productionHideCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Quantity_hides_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -676,7 +675,7 @@ productionHideCount <- function(){
 }
 
 
-productionMilkCount <- function(){
+productionMilkCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Quantity_milk", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -692,7 +691,7 @@ productionMilkCount <- function(){
 }
 
 
-valueManureCount <- function(){
+valueManureCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Value_manure_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -708,7 +707,7 @@ valueManureCount <- function(){
 }
 
 
-valueHideCount <- function(){
+valueHideCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Value_hides_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -724,7 +723,7 @@ valueHideCount <- function(){
 }
 
 
-valueOfftakeCount <- function(){
+valueOfftakeCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Value_offtake_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -740,7 +739,7 @@ valueOfftakeCount <- function(){
 }
 
 
-costFeedCount <- function(){
+costFeedCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Feed_cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -756,7 +755,7 @@ costFeedCount <- function(){
 }
 
 
-costLabourCount <- function(){
+costLabourCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Labour_cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -772,7 +771,7 @@ costLabourCount <- function(){
 }
 
 
-costHealthCount <- function(){
+costHealthCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Health_cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -788,7 +787,7 @@ costHealthCount <- function(){
 }
 
 
-costInfrastructureCount <- function(){
+costInfrastructureCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Infrastructure_cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -804,7 +803,7 @@ costInfrastructureCount <- function(){
 }
 
 
-costCapitalCount <- function(){
+costCapitalCount <- function(data){
   plot.df <- data %>%
     filter(grepl("Capital_cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -820,7 +819,7 @@ costCapitalCount <- function(){
 }
 
 
-costTotalCountAge <- function(){
+costTotalCountAge <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_expenditure_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -835,7 +834,7 @@ costTotalCountAge <- function(){
     theme
 }
 
-costTotalCountItem <- function(){
+costTotalCountItem <- function(data){
   plot.df <- data %>%
     filter(grepl("_cost$", X) & !grepl("^cost_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -851,7 +850,7 @@ costTotalCountItem <- function(){
 }
 
 
-costTotalStackedAge <- function(){
+costTotalStackedAge <- function(data){
   plot.df <- data %>%
     filter(grepl("_cost_", X)) %>% 
     mutate(
@@ -874,7 +873,7 @@ costTotalStackedAge <- function(){
 }
 
 
-costTotalStackedItem <- function(){
+costTotalStackedItem <- function(data){
   plot.df <- data %>%
     filter(grepl("_cost_", X)) %>% 
     mutate(
@@ -896,7 +895,7 @@ costTotalStackedItem <- function(){
 }
 
 
-grossMargin <- function(){
+grossMargin <- function(data){
   plot.df <- data %>%
     filter(grepl("Gross_margin_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -914,7 +913,7 @@ grossMargin <- function(){
 }
 
 
-netValue <- function(){
+netValue <- function(data){
   plot.df <- data %>%
     filter(grepl("Production_value_herd_offtake_hide_manure_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -932,7 +931,7 @@ netValue <- function(){
 }
 
 
-valueIncrease <- function(){
+valueIncrease <- function(data){
   plot.df <- data %>%
     filter(grepl("Total_value_increase_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -950,7 +949,7 @@ valueIncrease <- function(){
 }
 
 
-valueHerdIncrease <- function(){
+valueHerdIncrease <- function(data){
   plot.df <- data %>%
     filter(grepl("Value_herd_increase_", X)) %>% 
     mutate(X = format_x_labels(X))
@@ -968,7 +967,7 @@ valueHerdIncrease <- function(){
 }
 
 
-costValueWaterfall <- function(){
+costValueWaterfall <- function(data){
   waterfall.vars <- c(
     "Value_offtake",
     "Value_manure",
