@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [ "main" , "feature/Containerize-with-Flex" ]
+    branches: [ "main" , "feature/Containerize-with-Flex", "Kurtis" ]
 
   workflow_dispatch:
   
