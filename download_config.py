@@ -4,8 +4,8 @@ import os
 # Constants
 URL = "https://gbadske.org/api/dpm/download"
 PARAMS = {
-    "bucket_name": "gbads-modelling-private",
-    "object_name": "config/config.yml"
+    "bucket_name": "gbads-modelling",
+    "object_name": "account-portal-config/config.yml"
 }
 HEADERS = {
     "accept": "application/json",
