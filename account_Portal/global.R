@@ -18,6 +18,8 @@ languages <- ISOcodes::ISO_639_2$Name
 config <- yaml::read_yaml("../config.yml")
 source("../r_scripts/db_utils.R")
 source("../r_scripts/queries.R")
+source("../r_scripts/dpm_api_helpers.R")
+
 source("./Functions/radioImages.R")
 source("./Functions/create_yaml.R")
 source("./Functions/extract_yaml_names.R")

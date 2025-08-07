@@ -166,13 +166,16 @@ function(input, output, session) {
                     # Models Tab --------------------------------------------------------------
                     tabItem(tabName = "models",
                             h2("Your Models"),
-                            wellPanel(style = "max-width: 2500px; margin-right:20px;",
-                                      DTOutput("modelTable", width = "100%")
+                            wellPanel(
+                              style = "max-width: 2500px; margin-right:20px;",
+                              DTOutput("modelTable", width = "100%"),
+                              div(style = "text-align: right; margin-top: 10px;",
+                                  actionButton("launchOutputDB", "Open Dashboard Viewer", icon = icon("rocket"), class = "darkBtn")
+                              )
                             ),
                             br(),
-                            wellPanel(
-                              uiOutput("workflow"),
-                              style = "margin-right: 20px;"
+                            wellPanel(style = "max-width: 2500px; margin-right:20px;",
+                                      uiOutput("workflow"),
                             )
                     ),
                     
@@ -228,6 +231,10 @@ function(input, output, session) {
       )
     )
   })
+  
+# ------------------------------------------------------------------------------
+# Account Tab
+# ------------------------------------------------------------------------------
   
   # Submit Registration Button Logic ----------------------------------------
   observeEvent(input$submitRegBtn, {
@@ -317,12 +324,11 @@ function(input, output, session) {
     
   })
   
-  
   # Submit User Code Button Logic ------------------------------------------------
+  user_id <- reactiveVal(NULL)
+  
   observeEvent(input$submitCodeBtn, {
-    
     req(input$userCode)
-    
     result <- db_query(check_user_exists(input$userCode))
     
     if (isTRUE(result$exists)) {
@@ -338,6 +344,7 @@ function(input, output, session) {
         role = flatData$user_role
       ))
       
+      user_id(flatData$user_id)
       currentPage("account")
       
     } else {
@@ -349,9 +356,350 @@ function(input, output, session) {
       )
     }
     
-  })  
+  })
   
-  # Submit Model Button Logic ------------------------------------------
+  # Delete Account Button ---------------------------------------------------
+  
+  observeEvent(input$deleteAccount, {
+    showModal(modalDialog(
+      title = "Confirm Deletion",
+      "Are you sure you want to delete your account and all associated data? This action is not reversible.",
+      easyClose = FALSE,
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("confirmDelete", "Yes, Delete")
+      )
+    ))
+  })
+  
+  
+# ------------------------------------------------------------------------------
+# Models Tab
+# ------------------------------------------------------------------------------
+  
+  # Available Models Table
+  output$modelTable <- renderDT({
+    modelData$Action <- sprintf(
+      "<button class='btn btn-default' onClick=\"Shiny.setInputValue('download', '%s')\"><i class='fa fa-download'></i></button>
+       <button class='btn btn-danger' onClick=\"Shiny.setInputValue('delete', '%s')\"><i class='fa fa-trash'></i></button>",
+      rownames(modelData), rownames(modelData), rownames(modelData)
+    )
+    
+    datatable(modelData, 
+              escape = FALSE, 
+              selection = "none", 
+              rownames = F, 
+              style = "bootstrap", 
+              colnames = c("Model Name", "Model Type", "Date Created", "Date Completed", "Model Version", 
+                           "Status", "Actions")
+    )
+  })
+  
+  # Workflow well panel
+  output$workflow <- renderUI({
+    tagList(
+      h3("Create a new model", style = "font-weight: 900; color: #555; text-align: center;"),
+      div(class = "flow-container",
+          div(class = "flow-step",
+              div(class = "title", "1. Download Template"),
+              div(class = "subtext", "Select the species you want to model to download the corresponding Excel template."),
+              actionButton("downloadModal", "Download", icon = icon("download"), class = "darkBtn")
+          ),
+          div(class = "arrow"),
+          div(class = "flow-step",
+              div(class = "title", "2. Upload a Scenario"),
+              div(class = "subtext", "Open the downloaded template and adjust the values as necessary to create a new scenario."),
+              actionButton("uploadModal", "Upload", icon = icon("upload"), class = "darkBtn")
+          ),
+          div(class = "arrow"),
+          div(class = "flow-step",
+              div(class = "title", "3. Run a Model"),
+              div(class = "subtext", "When you are ready to create a new model, click the button below to upload your completed template file(s)."),
+              actionButton("runModal", "Run Model", icon = icon("play"), class = "darkBtn")
+          ),
+          div(class = "arrow"),
+          div(class = "flow-step",
+              div(class = "title", "4. Wait For Model to Run"),
+              div(class = "subtext", "Running a new model can take several minutes, you can check the progress in the table above. No need to stick around!")
+          )
+      ) 
+    )
+  })
+  
+# ------------------------------------------------------------------------------
+# Download Templates Button                 
+# ------------------------------------------------------------------------------
+  observeEvent(input$downloadModal, {
+    showModal(modalDialog(
+      title = "Download Scenario Template",
+      h5("Which species template would you like to download?"),
+      radioImages(
+        "selectTemplate",
+        images = c("https://www.svgrepo.com/show/99158/cow-silhouette.svg",
+                   "https://www.svgrepo.com/show/159080/rooster.svg",
+                   "https://www.svgrepo.com/show/169029/sheep.svg"),
+        values = c("https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_cattle.xlsx",
+                   "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_poultry.xlsx",
+                   "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_smallruminants.xlsx"),
+        texts = c("Cattle",
+                  "Poultry",
+                  "Small Ruminants")
+      ),
+      easyClose = TRUE,
+      footer = tagList(
+        actionButton("customCloseBtn", "Close", class = "lightBtn"),
+        actionButton("downloadTemplate", "Download", class = "uploadBtn")
+      ),
+      size = "m"
+    ))
+  })
+  
+  observeEvent(input$downloadTemplate, {
+    url <- input$selectTemplate
+    runjs(sprintf("window.open('%s', '_blank');", url))
+  })
+  
+# ------------------------------------------------------------------------------
+# Upload Scenario Button                 
+# ------------------------------------------------------------------------------
+  observeEvent(input$uploadModal, {
+    showModal(modalDialog(
+     title = "Upload a Scenario",
+     fileInput("newScenarioUpload",
+               label = NULL, 
+               multiple = FALSE, 
+               width = "100%", 
+               buttonLabel = "Browse", 
+               placeholder = "No file selected",
+               accept = ".yaml"
+     ),
+     
+     easyClose = TRUE,
+     size = "m",
+     
+     footer = tagList(
+       actionButton("customCloseBtn", "Close", class = "lightBtn"),
+       actionButton("submitScenarioBtn", "Upload", icon = icon("upload"), class = "uploadBtn")
+     )
+     
+    ))
+  })
+  
+  # Get available YAML (Bucket 1)
+  existingScenarios <- reactive({
+    user_id <- user_id()
+    files <- list_files_from_api("storage", user_id)
+    
+    yaml_files <- files[grepl("\\.ya?ml$", files, ignore.case = TRUE)]
+    
+    display_names <- basename(yaml_files)
+    named_files <- setNames(yaml_files, display_names)
+    
+    list(all = named_files)
+  })
+  
+  # Create reactives for checking if upload is an overwrite
+  upload_state <- reactiveValues(
+    pending_file = NULL,
+    ready_to_upload = FALSE
+  )
+  
+  # Button logic for upload scenario to Bucket 1
+  observeEvent(input$submitScenarioBtn, {
+    req(input$newScenarioUpload)
+    
+    uploaded_file <- input$newScenarioUpload
+    file_name <- uploaded_file$name
+    existing_files <- names(existingScenarios()$all)
+    
+    if (file_name %in% existing_files) {
+      # Save the file temporarily and show confirm modal
+      upload_state$pending_file <- uploaded_file
+      showModal(
+        modalDialog(
+          title = "File already exists",
+          paste0("A file named '", file_name, "' already exists. Overwrite?"),
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton("confirmOverwrite", "Overwrite", class = "btn-danger")
+          )
+        )
+      )
+    } else {
+      # No conflict — proceed immediately
+      upload_state$pending_file <- uploaded_file
+      upload_state$ready_to_upload <- TRUE
+    }
+  })
+  
+  observeEvent(input$confirmOverwrite, {
+    upload_state$ready_to_upload <- TRUE
+    removeModal()
+  })
+  
+  observeEvent(upload_state$ready_to_upload, {
+    req(upload_state$pending_file)
+    
+    uploaded_file <- upload_state$pending_file
+    yaml_object <- yaml::read_yaml(uploaded_file$datapath)
+    
+    success <- upload_yaml_to_api(
+      bucket = "storage",
+      user_id = user_id(),
+      file_name = uploaded_file$name,
+      yaml_object = yaml_object
+    )
+    
+    if (isTRUE(success)) {
+      sendSweetAlert(
+        session = session,
+        title = "Success!",
+        text = "Your parameter file has been saved.",
+        type = "success",
+        btn_labels = "OK",
+        closeOnClickOutside = TRUE
+      )
+    } else {
+      sendSweetAlert(
+        session = session,
+        title = "Oops...",
+        text = "Your parameter file was not able to be uploaded",
+        type = "error",
+        btn_labels = "OK",
+        closeOnClickOutside = TRUE
+      )
+    }
+    
+    # Reset states
+    upload_state$pending_file <- NULL
+    upload_state$ready_to_upload <- FALSE
+  })
+  
+# ------------------------------------------------------------------------------
+# Run Model Button                  
+# ------------------------------------------------------------------------------
+  existingModels <- reactive({
+    user_id <- user_id()
+    files <- list_files_from_api("inputs", user_id)
+    yaml_files <- files[grepl("\\.ya?ml$", files, ignore.case = TRUE)]
+    filenames <- basename(yaml_files)
+    
+    # Extract user-defined names using regex
+    user_defined_names <- vapply(filenames, function(name) {
+      match <- regmatches(name, regexec("user_\\d+_([^_]+)_", name))[[1]]
+      if (length(match) > 1) match[2] else NA_character_
+    }, character(1))
+    
+    # Create named vector: display = "test", value = full file path
+    named_files <- setNames(yaml_files, user_defined_names)
+    
+    list(all = named_files)
+  })
+  
+  observeEvent(input$runModal, {
+    showModal(modalDialog(
+      title = "Create a New Model",
+      
+      h5("1. Name your model"),
+      div(
+        textInput("newModelName", label = NULL, placeholder = "Enter name"),
+        uiOutput("modelNameWarning")
+      ),
+      
+      hr(),
+      h5("2. Select a model to be used as your 'Current' scenario, or upload a new YAML file"),
+      uiOutput("currentTemplateUpload"),
+      
+      hr(),
+      h5("3. Select a model to be used as your 'Ideal' scenario, or upload a new YAML file"),
+      uiOutput("idealTemplateUpload"),
+      
+      easyClose = TRUE,
+      size = "m",
+      
+      footer = tagList(
+        actionButton("customCloseBtn", "Close", class = "lightBtn"),
+        actionButton("submitModelBtn", "Run", icon = icon("play"), class = "uploadBtn")
+      )
+    ))
+    
+  })
+  
+  observeEvent(input$customCloseBtn, {
+    removeModal()
+  })
+  
+  # Upload logic for "Current"
+  output$currentTemplateUpload <- renderUI({
+    req(existingScenarios())
+    
+    current_files <- existingScenarios()$all
+    current_files <- current_files[!is.na(current_files) & current_files != ""]
+    
+    tagList(
+      selectInput("existingCurrentModel", 
+                  label = NULL,
+                  choices = c("", "New file...", current_files),
+                  selected = ""),
+      uiOutput("newCurrentUploadUI")
+    )
+  })
+  
+  output$newCurrentUploadUI <- renderUI({
+    req(input$existingCurrentModel)
+    
+    tagList(
+      if (input$existingCurrentModel == "New file...") {
+        fileInput(
+          "newCurrentUpload", 
+          label = NULL, 
+          multiple = FALSE, 
+          width = "100%", 
+          buttonLabel = "Browse", 
+          placeholder = "No file selected"
+        )
+      } else {
+        NULL
+      }
+    )
+  })
+  
+  # Upload logic for "Ideal"
+  output$idealTemplateUpload <- renderUI({
+    req(existingScenarios())
+    
+    ideal_files <- existingScenarios()$all
+    ideal_files <- ideal_files[!is.na(ideal_files) & ideal_files != ""]
+    
+    tagList(
+      selectInput("existingIdealModel", 
+                  label = NULL,
+                  choices = c("", "New file...", ideal_files),
+                  selected = ""),
+      uiOutput("newIdealUploadUI")
+    )
+  })
+  
+  output$newIdealUploadUI <- renderUI({
+    req(input$existingIdealModel)
+    
+    tagList(
+      if (input$existingIdealModel == "New file...") {
+        fileInput(
+          "newIdealUpload", 
+          label = NULL, 
+          multiple = FALSE, 
+          width = "100%", 
+          buttonLabel = "Browse", 
+          placeholder = "No file selected"
+        )
+      } else {
+        NULL
+      }
+    )
+  })
+  
+  # Submit Model Button Logic
   # Error handling flags
   specialCharWarning <- reactiveVal(FALSE)
   missingModelNameWarning <- reactiveVal(FALSE)
@@ -381,15 +729,16 @@ function(input, output, session) {
       return()
     }
     
-    existing <- yamlTemplates()
-    all_existing <- unique(c(existing$current, existing$ideal))
+    #Check if model with same name already exists in Bucket2
+    existing_model_names <- names(existingModels()$all)
     
-    if (input$newModelName %in% all_existing) {
+    # Check if the new name already exists
+    if (input$newModelName %in% existing_model_names) {
       existingModelNameWarning(TRUE)
       return()
     }
     
-    # Validate that a template is selected or uploaded for BOTH current and ideal
+    # Check than "Current" and "Ideal" are both present
     if ((is.null(input$existingCurrentModel) || input$existingCurrentModel == "") &&
         is.null(input$newCurrentUpload)) {
       missingTemplatesWarning(TRUE)
@@ -402,63 +751,147 @@ function(input, output, session) {
       return()
     }
     
-    # Load current YAML (from existing file or uploaded file)
+    # ---- CURRENT YAML ----
     if (!is.null(input$newCurrentUpload)) {
+      # Use the uploaded file
       current_yaml <- yaml::read_yaml(input$newCurrentUpload$datapath)
+      
+      # Upload it to the cloud (Bucket 1 = "storage")
+      success <- upload_yaml_to_api(
+        bucket = "storage",
+        user_id = user_id(),  # assuming this returns something like "user_1"
+        file_name = input$newCurrentUpload$name,
+        yaml_object = current_yaml
+      )
+      
+      if (!success) {
+        sendSweetAlert(
+          session = session,
+          title = "Upload Error",
+          text = "There was an error uploading your file to the cloud.",
+          type = "error"
+        )
+        return()
+      }
+      
     } else {
-      scenario_name <- gsub("_(current|ideal)$", "", input$existingCurrentModel)
-      all_files <- list.files("./Data", pattern = "\\.yaml$", full.names = TRUE)
-      pattern <- paste0("_(?:", scenario_name, ")_current\\.yaml$")
-      current_file <- grep(pattern, all_files, value = TRUE)
-      if (length(current_file) != 1) {
+      # User selected an existing file from the dropdown
+      selected_file <- input$existingCurrentModel
+      
+      if (is.null(selected_file) || selected_file == "") {
         missingTemplatesWarning(TRUE)
         return()
       }
-      current_yaml <- yaml::read_yaml(current_file)
+      
+      # Download YAML from Bucket 1 (storage)
+      current_yaml <- download_yaml_from_api(
+        bucket = "storage",                      # short-form bucket name
+        user_id = user_id(),                     # just the number (e.g. "1")
+        file_name = basename(selected_file)      # just "trial_CLM_current.yaml"
+      )
+      
+      if (is.null(current_yaml)) {
+        sendSweetAlert(
+          session = session,
+          title = "Load Error",
+          text = "There was an error loading your existing YAML from the cloud.",
+          type = "error"
+        )
+        return()
+      }
     }
     
-    # Load ideal YAML (from existing file or uploaded file)
+    
+    # ---- IDEAL YAML ----
     if (!is.null(input$newIdealUpload)) {
+      # Read from uploaded file
       ideal_yaml <- yaml::read_yaml(input$newIdealUpload$datapath)
+      
+      success <- upload_yaml_to_api(
+        bucket = "storage",
+        user_id = user_id(),
+        file_name = input$newIdealUpload$name,
+        yaml_object = ideal_yaml
+      )
+      
+      if (!success) {
+        sendSweetAlert(
+          session = session,
+          title = "Upload Error",
+          text = "There was an error uploading your ideal file to the cloud.",
+          type = "error"
+        )
+        return()
+      }
+      
     } else {
-      scenario_name <- gsub("_(current|ideal)$", "", input$existingIdealModel)
-      all_files <- list.files("./Data", pattern = "\\.yaml$", full.names = TRUE)
-      pattern <- paste0("_(?:", scenario_name, ")_ideal\\.yaml$")
-      ideal_file <- grep(pattern, all_files, value = TRUE)
-      if (length(ideal_file) != 1) {
+      selected_file <- input$existingIdealModel
+      
+      if (is.null(selected_file) || selected_file == "") {
         missingTemplatesWarning(TRUE)
         return()
       }
-      ideal_yaml <- yaml::read_yaml(ideal_file)
+      
+      # Download from "storage"
+      ideal_yaml <- download_yaml_from_api(
+        bucket = "storage",                      # short-form bucket name
+        user_id = user_id(),                     # just the number (e.g. "1")
+        file_name = basename(selected_file)      # just "trial_CLM_current.yaml"
+      )
+      
+      if (is.null(ideal_yaml)) {
+        sendSweetAlert(
+          session = session,
+          title = "Load Error",
+          text = "There was an error loading your ideal YAML from the cloud.",
+          type = "error"
+        )
+        return()
+      }
     }
     
     # Create zeroMortality and zeroMorbidity
     zero_mort <- create_zero_mort(current_yaml, ideal_yaml)
     zero_morb <- create_zero_morb(current_yaml, ideal_yaml)
     
-    # Build output filenames and save all 4 YAMLs
+    # Build timestamped file prefix
     timestamp <- format(Sys.time(), "%Y%m%dT%H%M%S")
-    user_id <- "user123"
+    user_id_val <- paste("user", user_id(), sep = "_")
     scenario_name <- input$newModelName
-    base <- file.path("Data", paste0(timestamp, "_", user_id, "_", scenario_name))
+    file_prefix <- paste0(timestamp, "_", user_id_val, "_", scenario_name)
     
-    yaml::write_yaml(current_yaml, paste0(base, "_current.yaml"))
-    yaml::write_yaml(ideal_yaml,   paste0(base, "_ideal.yaml"))
-    yaml::write_yaml(zero_mort,    paste0(base, "_zeroMortality.yaml"))
-    yaml::write_yaml(zero_morb,    paste0(base, "_zeroMorbidity.yaml"))
+    # Upload all 4 YAMLs to "inputs" bucket (formerly Bucket2)
+    upload_success <- c(
+      upload_yaml_to_api("inputs", user_id(), paste0(file_prefix, "_current.yaml"), current_yaml),
+      upload_yaml_to_api("inputs", user_id(), paste0(file_prefix, "_ideal.yaml"), ideal_yaml),
+      upload_yaml_to_api("inputs", user_id(), paste0(file_prefix, "_zeroMortality.yaml"), zero_mort),
+      upload_yaml_to_api("inputs", user_id(), paste0(file_prefix, "_zeroMorbidity.yaml"), zero_morb)
+    )
+    
+    # Check for any failures
+    if (any(!upload_success)) {
+      sendSweetAlert(
+        session = session,
+        title = "Upload Error",
+        text = "One or more YAML files could not be uploaded to the cloud.",
+        type = "error"
+      )
+      return()
+    }
     
     # Clear modal
     removeModal()
     
-    # User feedback that files have been saved
+    # Notify user
     sendSweetAlert(
       session = session,
       title = "Success!",
-      text = "Your parameter files have been saved and your model is being run.",
+      text = "Your parameter files have been uploaded and your model is being run.",
       type = "success",
       btn_labels = "OK",
       closeOnClickOutside = TRUE
     )
+    
   })
   
   # Error handling outputs
@@ -474,41 +907,11 @@ function(input, output, session) {
     }
   })
   
-
-  # Delete Account Button ---------------------------------------------------
+# ------------------------------------------------------------------------------
+# Dashboards Tab                 
+# ------------------------------------------------------------------------------
   
-  observeEvent(input$deleteAccount, {
-    showModal(modalDialog(
-      title = "Confirm Deletion",
-      "Are you sure you want to delete your account and all associated data? This action is not reversible.",
-      easyClose = FALSE,
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton("confirmDelete", "Yes, Delete")
-      )
-    ))
-  })
-  
-  # Available Models Table --------------------------------------------------
-  output$modelTable <- renderDT({
-    modelData$Action <- sprintf(
-      "<button class='btn btn-default' onClick=\"Shiny.setInputValue('createDashboard', '%s')\"><i class='fa-solid fa-chart-line'></i></button>
-       <button class='btn btn-default' onClick=\"Shiny.setInputValue('download', '%s')\"><i class='fa fa-download'></i></button>
-       <button class='btn btn-danger' onClick=\"Shiny.setInputValue('delete', '%s')\"><i class='fa fa-trash'></i></button>",
-      rownames(modelData), rownames(modelData), rownames(modelData)
-    )
-    
-    datatable(modelData, 
-              escape = FALSE, 
-              selection = "none", 
-              rownames = F, 
-              style = "bootstrap", 
-              colnames = c("Model Name", "Model Type", "Date Created", "Date Completed", "Model Version", 
-                           "Status", "Actions")
-    )
-  })
-  
-  # Available Dashboards Table ----------------------------------------------
+  # Available Dashboards Table
   output$dashTable <- renderDT({
     dashData$Action <- sprintf(
       "<button class='btn btn-default' onClick=\"Shiny.setInputValue('viewDashboard', '%s')\"><i class='fa-solid fa-rocket'></i></button>
@@ -522,171 +925,6 @@ function(input, output, session) {
               rownames = F, 
               style = "bootstrap", 
               colnames = c("Dashboard Name", "Date Created", "Model Used", "Actions")
-    )
-  })
-  
-  # Download Template -------------------------------------------------------
-  observeEvent(input$downloadModal, {
-    showModal(modalDialog(
-      title = "Download New Template",
-      h5("Which species template would you like to download?"),
-      radioImages(
-        "selectTemplate",
-        images = c("https://www.svgrepo.com/show/99158/cow-silhouette.svg",
-                   "https://www.svgrepo.com/show/159080/rooster.svg",
-                   "https://www.svgrepo.com/show/169029/sheep.svg"),
-        values = c("https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_cattle.xlsx",
-                   "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_poultry.xlsx",
-                   "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_smallruminants.xlsx"),
-        texts = c("Cattle",
-                  "Poultry",
-                  "Small Ruminants")
-      ),
-      easyClose = TRUE,
-      footer = tagList(
-        actionButton("customCloseBtn", "Close", class = "lightBtn"),
-        actionButton("downloadTemplate", "Download", class = "uploadBtn")
-      ),
-      size = "m"
-    ))
-  })
-  
-  observeEvent(input$downloadTemplate, {
-    url <- input$selectTemplate
-    runjs(sprintf("window.open('%s', '_blank');", url))
-  })
-  
-  # Ideal Template Upload ---------------------------------------------------
-  output$workflow <- renderUI({
-    tagList(
-      h3("Create a new model", style = "font-weight: 900; color: #555; text-align: center;"),
-      div(class = "flow-container",
-          div(class = "flow-step",
-              div(class = "title", "1. Download Template"),
-              div(class = "subtext", "Select the species you want to model to download the corresponding Excel template."),
-              actionButton("downloadModal", "Download", class = "lightBtn")
-          ),
-          div(class = "arrow"),
-          div(class = "flow-step",
-              div(class = "title", "2. Adjust Values"),
-              div(class = "subtext", "Open the downloaded template and adjust the values as necessary to create a new scenario.")
-          ),
-          div(class = "arrow"),
-          div(class = "flow-step",
-              div(class = "title", "3. Upload Values"),
-              div(class = "subtext", "When you are ready to create a new model, click the button below to upload your completed template file(s)."),
-              actionButton("newModelModal", "Create Model", class = "darkBtn")
-          ),
-          div(class = "arrow"),
-          div(class = "flow-step",
-              div(class = "title", "4. Wait For Email"),
-              div(class = "subtext", "Running a new model can take several minutes. No need to stick around, we will send you an email once your run is complete!")
-          )
-      ) 
-    )
-  })
-  
-  # Modal when "Create New Model" is clicked --------------------------------
-  observeEvent(input$newModelModal, {
-    showModal(modalDialog(
-      title = "Create a New Model",
-      
-      h5("1. Name your model"),
-      div(
-        textInput("newModelName", label = NULL, placeholder = "Enter name"),
-        uiOutput("modelNameWarning")
-      ),
-      
-      hr(),
-      h5("2. Select a model to be used as your 'Current' scenario, or upload a new YAML file"),
-      uiOutput("currentTemplateUpload"),
-      
-      hr(),
-      h5("3. Select a model to be used as your 'Ideal' scenario, or upload a new YAML file"),
-      uiOutput("idealTemplateUpload"),
-      
-      easyClose = TRUE,
-      size = "m",
-      
-      footer = tagList(
-        actionButton("customCloseBtn", "Close", class = "lightBtn"),
-        actionButton("submitModelBtn", "Submit", class = "uploadBtn")
-      )
-    ))
-    
-  })
-  
-  observeEvent(input$customCloseBtn, {
-    removeModal()
-  })
-  
-
-# Get available YAML ------------------------------------------------------
-  yamlTemplates <- reactive({
-    extract_yaml_names("./Data")
-  })  
-  
-  # Upload logic for "Current" --------------------------------------------
-  output$currentTemplateUpload <- renderUI({
-    req(yamlTemplates())
-    
-    tagList(
-      selectInput("existingCurrentModel", 
-                  label = NULL,
-                  choices = c("", "New file...", paste0(yamlTemplates()$current, "_current")),
-                  selected = ""),
-      uiOutput("newCurrentUploadUI")
-    )
-  })
-  
-  output$newCurrentUploadUI <- renderUI({
-    req(input$existingCurrentModel)
-    
-    tagList(
-      if (input$existingCurrentModel == "New file...") {
-        fileInput(
-          "newCurrentUpload", 
-          label = NULL, 
-          multiple = FALSE, 
-          width = "100%", 
-          buttonLabel = "Browse", 
-          placeholder = "No file selected"
-        )
-      } else {
-        NULL
-      }
-    )
-  })
-  
-  # Upload logic for "Ideal" --------------------------------------------
-  output$idealTemplateUpload <- renderUI({
-    req(yamlTemplates())
-    
-    tagList(
-      selectInput("existingIdealModel", 
-                  label = NULL,
-                  choices = c("", "New file...", paste0(yamlTemplates()$ideal, "_ideal")),
-                  selected = ""),
-      uiOutput("newIdealUploadUI")
-    )
-  })
-  
-  output$newIdealUploadUI <- renderUI({
-    req(input$existingIdealModel)
-    
-    tagList(
-      if (input$existingIdealModel == "New file...") {
-        fileInput(
-          "newIdealUpload", 
-          label = NULL, 
-          multiple = FALSE, 
-          width = "100%", 
-          buttonLabel = "Browse", 
-          placeholder = "No file selected"
-        )
-      } else {
-        NULL
-      }
     )
   })
   
