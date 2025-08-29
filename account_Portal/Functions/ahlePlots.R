@@ -4,23 +4,40 @@ colours_2 <- c("#F17105","#1A8FE3","#E6C229","#D11149","#6610F2","#006E90")
 ahle_colour <- "#F17105"
 
 # Gross Margin ------------------------------------------------------------
+format_short <- function(x, digits = 1) {
+  ax <- abs(x)
+  sign_chr <- ifelse(x < 0, "\u2212", "")  # nice minus
+  out <- ifelse(
+    ax >= 1e9, paste0(formatC(ax/1e9, format="f", digits=digits), " B"),
+    ifelse(ax >= 1e6, paste0(formatC(ax/1e6, format="f", digits=digits), " M"),
+           ifelse(ax >= 1e3, paste0(formatC(ax/1e3, format="f", digits=digits), " K"),
+                  formatC(ax, format="f", digits=0))
+    )
+  )
+  paste0(sign_chr, out)
+}
+
 ahle_gross_margin <- function(ahle_data) {
-  
   data_summary <- ahle_data$summary
   
   data <- data_summary %>%
     mutate(
-      variable_group = case_when(
+      mean_sign = as.numeric(mean_sign),
+      q2_5_sign = as.numeric(q2_5_sign),
+      q97_5_sign = as.numeric(q97_5_sign),
+      
+      variable_group = dplyr::case_when(
         variable %in% c("Feed Cost", "Health Cost", "Labour Cost") ~ "Costs",
         variable %in% c("Value of Herd Increase", "Value of Manure", "Value of Milk", "Value of Offtake") ~ "Values",
         variable == "Gross Margin" ~ "",
         TRUE ~ "Other"
       ),
-      variable_clean = case_when(
+      variable_clean = dplyr::case_when(
         grepl("Cost", variable) ~ gsub(" Cost", "", variable),
         grepl("Value of ", variable) ~ sub("Value of ", "", variable),
         TRUE ~ variable
-      )
+      ),
+      mean_sign_label2 = format_short(mean_sign, digits = 1)
     )
   
   data$variable_group <- factor(data$variable_group, levels = c("Values", "Costs", "", "Other"))
@@ -29,26 +46,28 @@ ahle_gross_margin <- function(ahle_data) {
   hlines <- seq(1.5, n_vars - 0.5, by = 1)
   
   ggplot(data, aes(y = mean_sign, x = variable_clean, group = scenario, fill = scenario)) +
-    geom_vline(xintercept = hlines, color = "gray80", size = 0.5) + 
+    geom_vline(xintercept = hlines, color = "gray80", size = 0.5) +
     geom_hline(yintercept = 0, colour = "#111111") +
     geom_bar(stat = "identity", position = position_dodge(width = 1)) +
-    geom_errorbar(aes(ymin = q2_5_sign, ymax = q97_5_sign), width = 0.2, position = position_dodge(width = 1)) +
+    geom_errorbar(aes(ymin = q2_5_sign, ymax = q97_5_sign),
+                  width = 0.2, position = position_dodge(width = 1)) +
     geom_label(
       aes(
-        label = mean_sign_label,
-        y = ifelse(sign != -1, q97_5_sign + 0.02 * max(q97_5_sign), 
-                   q97_5_sign - 0.02 * max(abs(q97_5_sign))),
+        label = mean_sign_label2,
+        y = ifelse(sign != -1,
+                   q97_5_sign + 0.02 * max(q97_5_sign, na.rm = TRUE),
+                   q97_5_sign - 0.02 * max(abs(q97_5_sign), na.rm = TRUE)),
         hjust = ifelse(sign != -1, 0, 1)
       ),
       position = position_dodge(width = 1),
-      size = 2.5
+      size = 4
     ) +
     coord_flip() +
     facet_grid(variable_group ~ ., scales = "free_y", space = "free_y", switch = "y") +
     labs(y = "Value (local currency unit)", x = "", fill = "Scenario") +
     scale_fill_manual(values = colours_1) +
     scale_y_continuous(
-      labels = label_number(accuracy = NULL, scale = 10^-9, suffix = "B"),
+      labels = scales::label_number(accuracy = NULL, scale = 10^-9, suffix = "B"),
       expand = expansion(mult = c(0.1, 0.2))
     ) +
     theme_minimal() +
@@ -63,7 +82,6 @@ ahle_gross_margin <- function(ahle_data) {
       panel.grid.major.y = element_blank()
     )
 }
-
 
 # Cost Breakdown ----------------------------------------------------------
 ahle_cost_plot <- function(ahle_data){
@@ -158,7 +176,6 @@ ahle_values_vs_cost <- function(ahle_data){
   ahle_graph_difference
 }
 
-
 # AHLE Summary Table ------------------------------------------------------
 ahle_summary_table <- function(ahle_data){
   
@@ -192,51 +209,58 @@ ahle_summary_table <- function(ahle_data){
   ahle_results_ft
 }
 
-
 # Donut Plots -------------------------------------------------------------
 ## Breakdown --------------------------------------------------------------
 ahle_donut_breakdown <- function(ahle_data){
-  
   ahle_results <- ahle_data$results
   
-  donut_plot_breakdown <- ahle_results %>%
-    filter(AHLE_type != "AHLEtot",
-           group != "Overall") %>%
+  donut_df <- ahle_results %>%
+    filter(AHLE_type != "AHLEtot", group != "Overall") %>%
     group_by(group) %>%
     mutate(
-      perc = perc / 100,
-      ymax = cumsum(perc),
+      perc = ifelse(is.na(perc), 0, perc),
+      frac = pmax(perc, 0) / 100 
+    ) %>%
+    mutate(
+      total_frac = sum(frac, na.rm = TRUE),
+      frac = ifelse(total_frac > 0, frac / total_frac, 0)
+    ) %>%
+    ungroup() %>%
+    arrange(group, AHLE_type_text) %>%
+    group_by(group) %>%
+    mutate(
+      ymax = cumsum(frac),
       ymin = lag(ymax, default = 0),
       labelPosition = (ymax + ymin) / 2,
-      label = paste0(round(perc * 100), "%")
+      label = scales::percent(frac, accuracy = 1)
     ) %>%
-    ggplot(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3, fill = AHLE_type_text)) +
+    ungroup()
+  
+  ggplot(
+    donut_df,
+    aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3, fill = AHLE_type_text)
+  ) +
     geom_rect(color = "white", size = 0.3) +
-    geom_label_repel(
+    ggrepel::geom_label_repel(
       aes(x = 3.5, y = labelPosition, label = label),
-      size = 3,
-      show.legend = FALSE,
+      size = 4, show.legend = FALSE,
       segment.color = "grey70",
-      box.padding = 0,
-      point.padding = 0,
-      min.segment.length = 0
+      box.padding = 0, point.padding = 0, min.segment.length = 0
     ) +
     scale_fill_manual(values = colours_2) +
-    coord_polar(theta = "y") +
-    xlim(c(2.4, 4)) + 
-    labs(fill = NULL) + 
+    coord_polar(theta = "y", clip = "off") +
+    xlim(c(2.4, 4)) +
+    labs(fill = NULL) +
     theme_void(base_size = 11) +
     theme(
       legend.text = element_text(size = 10),
       strip.text = element_text(face = "bold", size = 12),
-      legend.position = "bottom"
+      legend.position = "bottom",
+      plot.margin = margin(6, 18, 6, 6)
     ) +
-    facet_wrap(~group, ncol = 2)+
+    facet_wrap(~group, ncol = 2) +
     guides(fill = guide_legend(nrow = 2, byrow = TRUE))
-  
-  donut_plot_breakdown
 }
-
 
 ## Overall ---------------------------------------------------------------
 ahle_donut_overall <- function(ahle_data){
@@ -279,7 +303,6 @@ ahle_donut_overall <- function(ahle_data){
   
   donut_plot_overall
 }
-
 
 # Treemap -----------------------------------------------------------------
 ahle_treemap <- function(ahle_data){
@@ -350,4 +373,3 @@ ahle_treemap <- function(ahle_data){
   
   tree_plot_two_levels
 }
-

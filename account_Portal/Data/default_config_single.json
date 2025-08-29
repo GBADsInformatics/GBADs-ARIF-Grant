@@ -1,23 +1,23 @@
 {
   "Info": {
-    "userID": ["1111"],
-    "modelID": ["Ethiopia_Cattle"],
-    "modelDate": ["2025-02-12 13:24:58 EST"],
-    "dashboardName": ["Ethiopia_Cattle_1"]
+    "userID": [""],
+    "modelID": [""],
+    "modelDate": [""],
+    "dashboardName": [""]
   },
   "Panels": {
     "1": {
-      "plotType": ["populationBarSex"],
+      "plotType": ["Population Bar (by Sex)"],
       "title": ["Population Bar (by Sex)"],
       "caption": [""]
     },
     "2": {
-      "plotType": ["populationGrowthBarPercent"],
+      "plotType": ["Population Growth (Percent)"],
       "title": ["Population Growth (Percent)"],
       "caption": [""]
     },
     "3": {
-      "plotType": ["costValueWaterfall"],
+      "plotType": ["Cost vs Value Waterfall"],
       "title": ["Cost vs Value Waterfall"],
       "caption": [""]
     }

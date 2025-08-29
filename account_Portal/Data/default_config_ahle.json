@@ -1,23 +1,23 @@
 {
   "Info": {
-    "userID": ["1111"],
-    "modelID": ["Ethiopia_Cattle"],
-    "modelDate": ["2025-02-12 13:24:58 EST"],
-    "dashboardName": ["Ethiopia_Cattle_1"]
+    "userID": [""],
+    "modelID": [""],
+    "modelDate": [""],
+    "dashboardName": [""]
   },
   "Panels": {
     "1": {
-      "plotType": ["ahle_gross_margin"],
+      "plotType": ["Gross Margin"],
       "title": ["Gross Margin"],
       "caption": [""]
     },
     "2": {
-      "plotType": ["ahle_donut_breakdown"],
+      "plotType": ["Attribution by Category"],
       "title": ["Attribution by Category"],
       "caption": [""]
     },
     "3": {
-      "plotType": ["ahle_treemap"],
+      "plotType": ["Attribution Treemap"],
       "title": ["Attribution Treemap"],
       "caption": [""]
     }
