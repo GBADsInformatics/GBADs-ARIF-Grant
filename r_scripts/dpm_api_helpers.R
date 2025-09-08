@@ -9,7 +9,7 @@ library(yaml)
 # ==============================================================================
 # Auth (DO NOT COMMIT SECRETS)
 # ==============================================================================
-auth_token <- ""
+auth_token <- Sys.getenv("DPM_AUTH_TOKEN", unset = "")
 headers    <- httr::add_headers(Authorization = paste("Bearer", auth_token))
 
 # ==============================================================================
