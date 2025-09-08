@@ -14,25 +14,39 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
     python3-pip \
+    libwebp-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install R packages
 RUN install2.r --error --skipinstalled \
-    shiny \
+    config \
+    DBI \
+    dplyr \
+    DT \
+    flextable \
+    foreach \
     fresh \
-    shinyWidgets \
+    ggplot2 \
+    ggrepel \
+    httr \
     ISOcodes \
     jsonlite \
+    plotly \
+    purrr \
+    readr \
+    rlang \
+    RPostgres \
+    scales \
+    shiny \
+    shinycssloaders \
     shinydashboard \
     shinydashboardPlus \
-    DT \
-    DBI \
-    config \
-    yaml \
     shinyjs \
-    httr \
-    RPostgres
+    shinyWidgets \
+    stringr \
+    yaml \
+    doParallel
 
 # Install Python packages (override PEP 668 protection)
 RUN pip3 install --break-system-packages requests
