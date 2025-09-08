@@ -79,6 +79,23 @@ Example Request:
 
 ---
 
+## Running Docker
+
+Build the container:
+
+```
+docker build -t account-portal .
+```
+
+Run the container:
+
+```
+docker run -p 3838:80 account-portal
+```
+
+
+---
+
 ## Contributors
 - Kassy Raymond 
 
