@@ -808,7 +808,7 @@ function(input, output, session) {
   # Templates: Download
   # ============================================================================
   observeEvent(input$downloadModal, {
-    cattle_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_cattle.xlsx"
+    cattle_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/cattle_DPM_template_version_1.0.xlsm"
     showModal(modalDialog(
       title = "Download Scenario Template",
       tagList(
@@ -846,7 +846,7 @@ function(input, output, session) {
   observeEvent(input$customCloseBtn, removeModal())
   
   observeEvent(input$downloadTemplate, {
-    cattle_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/20250310_DPM_template_cattle.xlsx"
+    cattle_url <- "https://gbads-modelling.s3.ca-central-1.amazonaws.com/cattle_DPM_template_version_1.0.xlsm"
     shinyjs::runjs(sprintf("window.open('%s', '_blank');", cattle_url))
   })
   
@@ -856,16 +856,32 @@ function(input, output, session) {
   observeEvent(input$uploadModal, {
     showModal(modalDialog(
       title = "Upload a Scenario",
-      fileInput("newScenarioUpload", label = NULL, multiple = FALSE, width = "100%",
-                buttonLabel = "Browse", placeholder = "No file selected", accept = ".yaml"),
+      fileInput(
+        "newScenarioUpload",
+        label = NULL,
+        multiple = FALSE,
+        width = "100%",
+        buttonLabel = "Browse",
+        placeholder = "No file selected",
+        accept = c(".yaml", ".yml")  # accept both
+      ),
       easyClose = TRUE, size = "m",
-      footer = tagList(actionButton("customCloseBtn", "Close", class = "lightBtn"),
-                       actionButton("submitScenarioBtn", "Upload", icon = icon("upload"), class = "uploadBtn"))
+      footer = tagList(
+        actionButton("customCloseBtn", "Close", class = "lightBtn"),
+        actionButton("submitScenarioBtn", "Upload", icon = icon("upload"), class = "uploadBtn")
+      )
     ))
+  })
+  
+  refreshTrigger <- reactiveVal(0)
+  observeEvent(input$runModal, {
+    refreshTrigger(refreshTrigger() + 1)
   })
   
   existingScenarios <- reactive({
     req(user_id())
+    refreshTrigger()
+    
     files <- tryCatch(list_files_from_api("storage", user_id()), error = function(e) NULL)
     empty_named <- list(all = setNames(character(0), character(0)))
     if (is.null(files) || length(files) == 0) return(empty_named)
@@ -898,36 +914,92 @@ function(input, output, session) {
   
   observeEvent(input$submitScenarioBtn, {
     req(input$newScenarioUpload)
-    uploaded_file  <- input$newScenarioUpload
-    file_name      <- uploaded_file$name
-    existing_files <- names(existingScenarios()$all)
+    
+    uploaded_file <- input$newScenarioUpload
+    file_name <- basename(if (is.null(uploaded_file$name)) "" else uploaded_file$name)
+    
+    existing_list  <- tryCatch(existingScenarios(), error = function(e) NULL)
+    existing_all   <- if (is.null(existing_list)) NULL else existing_list$all
+    existing_files <- if (is.null(existing_all)) character(0) else names(existing_all)
+    
+    # extension guard before parsing
+    if (!grepl("\\.ya?ml$", file_name, ignore.case = TRUE)) {
+      showModal(modalDialog(
+        title = "Unsupported file type",
+        "Please upload a .yaml or .yml file.",
+        easyClose = TRUE, footer = modalButton("OK")
+      ))
+      return(invisible(NULL))
+    }
     
     if (file_name %in% existing_files) {
       upload_state$pending_file <- uploaded_file
       showModal(modalDialog(
         title  = "File already exists",
         paste0("A file named '", file_name, "' already exists. Overwrite?"),
-        footer = tagList(modalButton("Cancel"), actionButton("confirmOverwrite", "Overwrite", class = "btn-danger"))
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton("confirmOverwrite", "Overwrite", class = "btn-danger")
+        )
       ))
     } else {
-      upload_state$pending_file   <- uploaded_file
+      upload_state$pending_file    <- uploaded_file
       upload_state$ready_to_upload <- TRUE
     }
   })
   
-  observeEvent(input$confirmOverwrite, { upload_state$ready_to_upload <- TRUE; removeModal() })
+  observeEvent(input$confirmOverwrite, {
+    upload_state$ready_to_upload <- TRUE
+    removeModal()
+  })
   
   observeEvent(upload_state$ready_to_upload, {
     req(upload_state$pending_file)
     uploaded_file <- upload_state$pending_file
-    yaml_object   <- yaml::read_yaml(uploaded_file$datapath)
     
-    success <- upload_yaml_to_api(bucket = "storage", user_id = user_id(), file_name = uploaded_file$name, yaml_object = yaml_object)
-    if (isTRUE(success)) {
-      sendSweetAlert(session, "Success!", "Your parameter file has been saved.", type = "success", btn_labels = "OK", closeOnClickOutside = TRUE)
-    } else {
-      sendSweetAlert(session, "Oops...", "Your parameter file was not able to be uploaded", type = "error", btn_labels = "OK", closeOnClickOutside = TRUE)
+    # --- SAFE YAML PARSE ---
+    yaml_obj <- tryCatch(
+      yaml::read_yaml(uploaded_file$datapath),
+      error = function(e) e
+    )
+    
+    if (inherits(yaml_obj, "error")) {
+      showModal(modalDialog(
+        title = "Invalid YAML file",
+        tagList(
+          p("We couldn’t read that YAML file. Please fix the formatting and try again."),
+          p("Common issues include unquoted colons in values, inconsistent indentation, or tabs."),
+          tags$pre(style = "white-space: pre-wrap;", conditionMessage(yaml_obj))
+        ),
+        easyClose = TRUE, footer = modalButton("OK")
+      ))
+      # reset state so it doesn't loop
+      upload_state$pending_file    <- NULL
+      upload_state$ready_to_upload <- FALSE
+      return(invisible(NULL))
     }
+    
+    # --- UPLOAD ---
+    success <- tryCatch(
+      upload_yaml_to_api(
+        bucket = "storage",
+        user_id = user_id(),
+        file_name = uploaded_file$name,
+        yaml_object = yaml_obj
+      ),
+      error = function(e) FALSE
+    )
+    
+    if (isTRUE(success)) {
+      sendSweetAlert(session, "Success!", "Your parameter file has been saved.", type = "success",
+                     btn_labels = "OK", closeOnClickOutside = TRUE)
+      # refresh the scenarios list so the file appears immediately
+      refreshTrigger(refreshTrigger() + 1)
+    } else {
+      sendSweetAlert(session, "Oops...", "Your parameter file could not be uploaded.",
+                     type = "error", btn_labels = "OK", closeOnClickOutside = TRUE)
+    }
+    
     upload_state$pending_file    <- NULL
     upload_state$ready_to_upload <- FALSE
   })
