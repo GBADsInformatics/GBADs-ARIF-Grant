@@ -65,6 +65,7 @@ RUN mkdir -p /srv/shiny-server/account_Portal/app_cache && \
 
 # Set environment variable
 ENV _R_SHLIB_STRIP_=true
+ENV SHINY_LOG_STDERR=1
 
 # Entrypoint script
 ENTRYPOINT ["/entrypoint.sh"]
