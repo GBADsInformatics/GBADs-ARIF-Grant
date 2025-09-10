@@ -583,7 +583,13 @@ outputDashboardServer <- function(id, user_data, DEBUG = FALSE) {
     })
     
     # ---------------- Configure modal ----------------
+    modal_open <- reactiveVal(FALSE)
+    
     observeEvent(input$configure_db, {
+      # Always re-pull the latest output file list when opening the modal
+      refresh_outputs_list()
+      modal_open(TRUE)
+      
       showModal(
         modalDialog(
           title = tags$h4("Configure Output", style = "margin-bottom: 0;"),
@@ -638,27 +644,33 @@ outputDashboardServer <- function(id, user_data, DEBUG = FALSE) {
         )
       )
       
+      # Populate selects using the freshly updated list
       files <- outputs_files() %||% character(0)
       
+      # Single-run choices
       if (length(files)) {
-        updateSelectInput(session, "single_model_choice",
-                          choices  = files,
-                          selected = if (db_type() == "single" && nzchar(single_model_name() %||% "")) single_model_name() else files[1]
+        updateSelectInput(
+          session, "single_model_choice",
+          choices  = files,
+          selected = if (db_type() == "single" && nzchar(single_model_name() %||% "")) single_model_name() else files[1]
         )
       } else {
         updateSelectInput(session, "single_model_choice", choices = character(0), selected = NULL)
       }
       
+      # AHLE group choices (derived from filenames)
       if (length(files)) {
         groups <- unique(stats::na.omit(parse_model_group(files)))
-        updateSelectInput(session, "ahle_model_choice",
-                          choices  = groups,
-                          selected = if (db_type() == "ahle" && !is.null(input$ahle_model_choice)) input$ahle_model_choice else groups[1]
+        updateSelectInput(
+          session, "ahle_model_choice",
+          choices  = groups,
+          selected = if (db_type() == "ahle" && !is.null(input$ahle_model_choice)) input$ahle_model_choice else groups[1]
         )
       } else {
         updateSelectInput(session, "ahle_model_choice", choices = character(0), selected = NULL)
       }
       
+      # Enable/disable Save based on selections
       validate_modal <- function() {
         rt <- input$run_type %||% "single"
         ok <- if (rt == "single") {
@@ -690,7 +702,9 @@ outputDashboardServer <- function(id, user_data, DEBUG = FALSE) {
         return()
       }
       
+      modal_open(FALSE)  # stop polling as we close the modal
       removeModal()
+      
       db_type(input$run_type)
       
       if (input$run_type == "single") {
@@ -702,8 +716,8 @@ outputDashboardServer <- function(id, user_data, DEBUG = FALSE) {
         selected_group <- input$ahle_model_choice
         matching_files <- files[groups == selected_group]
         
-        current_model_name(   matching_files[grepl("(?i)_current_full\\.csv$",       matching_files)][1] )
-        ideal_model_name(     matching_files[grepl("(?i)_ideal_full\\.csv$",         matching_files)][1] )
+        current_model_name(   matching_files[grepl("(?i)_current_full\\.csv$",               matching_files)][1] )
+        ideal_model_name(     matching_files[grepl("(?i)_ideal_full\\.csv$",                 matching_files)][1] )
         zeromort_model_name(  matching_files[grepl("(?i)_(zeroMort|zeroMortality)_full\\.csv$", matching_files)][1] )
         zeromorb_model_name(  matching_files[grepl("(?i)_(zeroMorb|zeroMorbidity)_full\\.csv$", matching_files)][1] )
         single_model_name(NULL)
@@ -711,6 +725,35 @@ outputDashboardServer <- function(id, user_data, DEBUG = FALSE) {
       
       showNotification("Dashboard configuration saved.", type = "message", duration = 2)
     })
+    
+    #Refetch models every 4s when modal is open
+    observe({
+      req(modal_open())
+      invalidateLater(4000, session)
+      
+      # Re-pull; if changed, repopulate the selects
+      before <- outputs_files()
+      refresh_outputs_list()
+      after <- outputs_files()
+      
+      if (!identical(before, after)) {
+        files  <- after %||% character(0)
+        groups <- unique(stats::na.omit(parse_model_group(files)))
+        
+        updateSelectInput(
+          session, "single_model_choice",
+          choices  = files,
+          selected = isolate(input$single_model_choice) %||% if (length(files)) files[1] else NULL
+        )
+        
+        updateSelectInput(
+          session, "ahle_model_choice",
+          choices  = groups,
+          selected = isolate(input$ahle_model_choice) %||% if (length(groups)) groups[1] else NULL
+        )
+      }
+    })
+    
     
     # ---------------- Child panel servers ----------------
     observe({
