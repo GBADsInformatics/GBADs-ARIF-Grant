@@ -36,41 +36,39 @@ function(input, output, session) {
   output$dynamicContent <- renderUI({
     req(currentPage())
     tagList(
-      if (currentPage() != "account") {
+      
+      if (identical(currentPage(), "main")) tagList(
         tags$div(
-          class = "titlePanel",
-          div(
+          class = "gbads-hero",
+          tags$div(
+            class = "gbads-hero__text",
             h1(
-              tags$span("GBAD", style = "font-weight: 900; font-size: clamp(60px, 10vw, 120px);"),
-              tags$span("s",    style = "font-weight: 900; font-size: clamp(60px, 10vw, 120px); color: #f55c2c;")
-            )
+              class = "gbads-hero__title",
+              HTML('<span style="font-weight:900;">GBAD</span><span style="font-weight:900;color:#f55c2c;">s</span>')
+            ),
+            h3(class = "gbads-hero__subtitle", "Model Builder"),
+            h3("Access Your Custom Models and Dashboards."),
+            h5("Easily view and manage model outputs, and create custom, dashboard-style reports."),
+            div(class = "gbads-cta", 
+                actionButton("loginBtn", "Login", class = "darkBtn"), 
+                actionButton("registerBtn", "Register", class = "lightBtn")
+                )
+          ),
+          tags$div(
+            class = "gbads-hero__image",
+            img(src = "albert.png", alt = "GBADs Mascot")
           )
         )
-      } else tags$div(),
+        ),
+      
       switch(
         currentPage(),
-        
-        # Landing
-        "main" = tagList(
-          div(style = "max-width: 600px; margin: 0 auto;",
-              div(
-                h3("Access Your Custom Models and Dashboards.",
-                   style = "color: #f55c2c; line-height: 1.5; width: 100%; font-size: clamp(12px, 4vw, 30px); text-align: center; font-weight: bold; padding: 0 20%;"
-                ),
-                h5("Easily view and manage your model outputs, and create custom dashboard-style reports.",
-                   style = "padding: 5% 20%; line-height: 1.5; text-align: center;"
-                )
-              ),
-              div(style = "padding-top: 10%; text-align: center;",
-                  actionButton("loginBtn",    "Login",    class = "darkBtn"),
-                  actionButton("registerBtn", "Register", class = "lightBtn")
-              )
-          )
-        ),
+        # Main
+        "main" = tagList(),
         
         # Login
         "login" = tagList(
-          div(style = "maxwidth: 550px; margin: 0 auto;",
+          div(style = "max-width: 550px; margin: 0 auto;",
               h3("Login", style = "color: #f55c2c; text-align: center; font-weight: bold;"),
               div(style = "text-align: center;", h5("Please enter your email and code.", style = "text-align: center;")),
               div(style = "width: 100%; display: flex; justify-content: center;", textInput("userEmail", label = NULL, placeholder = "Email")),
@@ -107,7 +105,7 @@ function(input, output, session) {
           )
         ),
         
-        # Account (Dashboard shell)
+        # Account (dashboard shell)
         "account" = tagList(
           div(style = "width: 100vw; left: 0; top: 0;",
               dashboardPage(
@@ -129,8 +127,6 @@ function(input, output, session) {
                 dashboardBody(
                   tags$script(HTML("$(document).ready(function(){setTimeout(function(){ $(window).trigger('resize'); }, 10);});")),
                   tabItems(
-                    
-                    # Models Tab
                     tabItem(
                       tabName = "models",
                       h2("Your Models"),
@@ -150,13 +146,9 @@ function(input, output, session) {
                       br(),
                       wellPanel(style = "max-width: 2500px; margin-right:20px;", uiOutput("workflow"))
                     ),
-                    
-                    # Dashboard Tab
                     tabItem(tabName = "dashboardViewer",
                             wellPanel(style = "max-width: 2500px; margin-right:20px;", uiOutput("outputDashboard"))
                     ),
-                    
-                    # Account Tab
                     tabItem(tabName = "account",
                             div(
                               style = "width: 100%; text-align: center; padding: 20px; height: 130px; background-color: #F2F2F2;",
@@ -191,6 +183,7 @@ function(input, output, session) {
       )
     )
   })
+  
   
   # ============================================================================
   # Registration

@@ -2,6 +2,87 @@
     --GBADs-color: #F7931D;
 }
 
+.gbads-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 5%;
+  min-height: 70vh;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.gbads-hero__text {
+  flex: 1;
+  max-width: 600px;
+  text-align: center;
+}
+
+.gbads-hero__title {
+  font-size: clamp(72px, 10vw, 150px);
+  margin: 0;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gbads-hero__subtitle {
+  margin: 10px 0 20px 0;
+  font-weight: 600;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.1;
+}
+
+.gbads-hero__tagline {
+  font-size: 18px;
+  line-height: 1.5;
+  color: #555;
+  margin: 0;
+}
+
+.gbads-hero__image img {
+  max-height: 70vh;
+  height: auto;
+  width: auto;
+}
+
+.gbads-sublead {
+  max-width: 720px;
+  margin: 16px auto 0;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.gbads-sublead h3 {
+  margin: 0 0 8px 0;
+  line-height: 1.35;
+  font-weight: 800;
+  font-size: clamp(18px, 4vw, 28px);
+}
+
+.gbads-sublead h5 {
+  margin: 0;
+  line-height: 1.5;
+  color: #333;
+  font-weight: 500;
+  font-size: clamp(14px, 2.6vw, 18px);
+}
+
+.gbads-cta {
+  text-align: center;
+  margin: 28px 0 0 0;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Responsive: remove mascot on small screen */
+@media (max-width: 900px) {
+  .gbads-hero__image {
+    display: none;
+  }
+}
+
 html, body {
   height: 100%;
   margin: 0;
@@ -66,15 +147,15 @@ footer {
   font-weight: bold;
   border: 0;
   position: relative;
-  left: 50%; /* Adjust for fixedPage centering */
+  left: 50%;
   transform: translateX(-50%);
-  box-sizing: border-box; /* Ensure padding and border are included in width */
+  box-sizing: border-box;
 }
 
 .parent-container {
   display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center;    /* Center vertically */
+  justify-content: center;
+  align-items: center;
   max-height: 800px;
 }
 
