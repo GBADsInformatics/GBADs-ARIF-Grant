@@ -80,7 +80,8 @@ ahle_gross_margin <- function(ahle_data) {
       axis.title = element_text(size = 14, face = "bold"),
       legend.position = "bottom",
       panel.grid.major.y = element_blank()
-    )
+    ) +
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 }
 
 # Cost Breakdown ----------------------------------------------------------
@@ -101,7 +102,8 @@ ahle_cost_plot <- function(ahle_data){
     scale_y_continuous(labels = label_number(accuracy = NULL, scale = 10^-9, suffix = "B")) +
     theme_minimal() +
     theme(text = element_text(size = 14),
-          legend.position = "bottom") 
+          legend.position = "bottom")  +
+    guides(fill = guide_legend(nrow = 3, byrow = TRUE))
   
   cost_plot
 }
