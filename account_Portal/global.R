@@ -28,15 +28,8 @@ countries <- ISOcodes::ISO_3166_1$Name
 languages <- ISOcodes::ISO_639_2$Name
 
 # ------------------------------------------------------------------------------
-# Source Cofig                 
-# ------------------------------------------------------------------------------
-config <- yaml::read_yaml("../config.yml")
-
-# ------------------------------------------------------------------------------
 # Source Helper Functions                 
 # ------------------------------------------------------------------------------
-source("../r_scripts/db_utils.R")
-source("../r_scripts/queries.R")
 source("../r_scripts/dpm_api_helpers.R")
 
 source("./Functions/radioImages.R")

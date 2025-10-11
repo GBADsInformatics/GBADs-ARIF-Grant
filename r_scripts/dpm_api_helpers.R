@@ -34,11 +34,6 @@ get_user_info <- function(user_id) {
   }
 }
 
-safe_get_user <- function(user_id) {
-  out <- tryCatch(get_user_info(as.character(user_id)), error = function(e) NULL)
-  if (is.null(out) || is.null(out$user_id)) NULL else out
-}
-
 create_user <- function(firstname, lastname, email, country, language, role) {
   url  <- paste0(.api_base, "/user")
   body <- list(
@@ -56,8 +51,45 @@ create_user <- function(firstname, lastname, email, country, language, role) {
     body = body,
     encode = "json"
   )
-  httr::stop_for_status(res)
-  httr::content(res, "parsed", simplifyVector = TRUE)
+  
+  status_code <- httr::status_code(res)
+  
+  if (status_code == 200 || status_code == 201) {
+    # Success - return the user data
+    return(list(
+      success = TRUE,
+      user_data = httr::content(res, "parsed", simplifyVector = TRUE)
+    ))
+  } else if (status_code == 400) {
+    # Check if this is the "user already exists" error
+    error_content <- tryCatch({
+      httr::content(res, "parsed", simplifyVector = TRUE)
+    }, error = function(e) NULL)
+    
+    if (!is.null(error_content) && !is.null(error_content$detail)) {
+      if (grepl("user with this email address already exists", error_content$detail, ignore.case = TRUE)) {
+        return(list(
+          success = FALSE,
+          error_type = "email_exists",
+          message = "A user with this email address already exists."
+        ))
+      }
+    }
+    
+    # Other 400 errors
+    return(list(
+      success = FALSE,
+      error_type = "validation_error",
+      message = if (!is.null(error_content$detail)) error_content$detail else "Invalid request data."
+    ))
+  } else {
+    # Other errors
+    return(list(
+      success = FALSE,
+      error_type = "server_error",
+      message = paste("Server error:", status_code)
+    ))
+  }
 }
 
 delete_user <- function(user_id) {

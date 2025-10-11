@@ -194,15 +194,12 @@ function(input, output, session) {
     if (input$email    == "") missing <- c(missing, "Email Address")
     if (input$country  == "") missing <- c(missing, "Country")
     if (input$language == "") missing <- c(missing, "Preferred Language")
-    
+
     if (length(missing) > 0) {
       sendSweetAlert(session, "Missing Information.", paste("Please fill out:", paste(missing, collapse = ", ")), type = "error"); return()
     }
     if (!grepl("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", input$email)) {
       sendSweetAlert(session, "Missing Information.", "Your email address does not appear to be properly formatted.", type = "error"); return()
-    }
-    if (isTRUE(db_query(check_email_exists(input$email))$exists)) {
-      sendSweetAlert(session, "Account Taken.", "That email address is already associated with another account. Use the Login page.", type = "error"); return()
     }
     if (input$cloudConsent != TRUE) {
       sendSweetAlert(session, "Cloud Consent Required.",
@@ -210,7 +207,7 @@ function(input, output, session) {
                                 a("Available here.", href = "https://gbadske.org", target = "_blank"))),
                      type = "error", html = TRUE); return()
     }
-    
+
     role <- if (nzchar(input$currentRole)) input$currentRole else "User"
     try({
       new_user <- create_user(
@@ -221,19 +218,27 @@ function(input, output, session) {
         language  = input$language,
         role      = role
       )
-      if (!is.null(new_user) && !is.null(new_user$user_id)) {
+      if (!is.null(new_user) && is.list(new_user) && isFALSE(new_user$success) && identical(new_user$error_type, "email_exists")) {
+        sendSweetAlert(session, "Account Taken.", "That email address is already associated with another account. Use the Login page.", type = "error")
+        return()
+      }
+      if (!is.null(new_user) && is.list(new_user) && isTRUE(new_user$success) && !is.null(new_user$user_data$user_id)) {
         sendSweetAlert(session, "Account Created 🎉",
-                       HTML(paste0("<b>Your account number is: <span style='font-size:1.2em;'>", new_user$user_id, "</span></b><br><br>",
+                       HTML(paste0("<b>Your account number is: <span style='font-size:1.2em;'>", new_user$user_data$user_id, "</span></b><br><br>",
                                    "Please <b>save this number</b> somewhere safe; you'll need it to login.")),
                        type = "success", html = TRUE)
         currentPage("main")
-      } else {
+      } else if (!is.null(new_user) && is.list(new_user) && isTRUE(new_user$success)) {
         sendSweetAlert(session, "Account Created (Check Email)",
                        "Your account appears to be created, but we couldn't read the account number from the response.",
                        type = "warning")
+      } else if (!is.null(new_user) && is.list(new_user) && isFALSE(new_user$success)) {
+        sendSweetAlert(session, "Couldn’t Create Account",
+                       new_user$message %||% "Something went wrong while creating your account. Please try again.",
+                       type = "error")
       }
     }, silent = TRUE) -> try_res
-    
+
     if (inherits(try_res, "try-error")) {
       sendSweetAlert(session, "Couldn’t Create Account",
                      "Something went wrong while creating your account. Please try again.",
@@ -272,7 +277,7 @@ function(input, output, session) {
       return(invisible(NULL))
     }
 
-    user <- safe_get_user(entered_code)
+    user <- get_user_info(entered_code)
     if (is.null(user)) {
       sendSweetAlert(session, "Not Found", "We couldn’t find an account with the email and code you provided. If you haven’t registered yet, please create an account. If you think this is a mistake, please reach out to support.", type = "error")
       return(invisible(NULL))
