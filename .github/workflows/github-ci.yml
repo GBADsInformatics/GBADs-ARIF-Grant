@@ -31,7 +31,7 @@ jobs:
         BaseURL=/account-portal,
         ListenerRulePriority=30,
         DpmAuthentication=${{ secrets.DPM_AUTH_TOKEN }},
-        COGNITOCLIENTID=#{{ secrets.COGNITO_CLIENT_ID }}
+        COGNITOCLIENTID=${{ secrets.COGNITO_CLIENT_ID }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     with:
