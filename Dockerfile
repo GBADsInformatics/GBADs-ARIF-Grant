@@ -30,6 +30,7 @@ RUN install2.r --error --skipinstalled \
     ggplot2 \
     ggrepel \
     httr \
+    jose \
     ISOcodes \
     jsonlite \
     plotly \

@@ -18,26 +18,105 @@ function(input, output, session) {
     unique(c(strict, loose))
   }
   
+  auth <- cognitoAuthServer(
+    id = "auth",
+    cognito_domain = COGNITO_CONFIG$domain,
+    client_id = COGNITO_CONFIG$client_id,
+    redirect_uri = COGNITO_CONFIG$redirect_uri
+  )
+  
+  # Observe authentication state changes
+  observe({
+    if (isTRUE(auth$authenticated) && !is.null(auth$user_info)) {
+      # Set user data from Cognito
+      userData(list(
+        email = auth$user_info$email %||% "",
+        firstName = auth$user_info$given_name %||% "",
+        lastName = auth$user_info$family_name %||% "",
+        role = if (!is.null(auth$user_info$"cognito:groups") && "admin" %in% auth$user_info$"cognito:groups") "Admin" else "User"
+      ))
+      
+      # Set user ID from Cognito sub
+      user_id(auth$user_info$sub %||% NULL)
+      
+      # Navigate to account page IMMEDIATELY
+      isolate({
+        if (currentPage() != "account") {
+          currentPage("account")
+        }
+      })
+    } else if (isFALSE(auth$authenticated)) {
+      # User logged out or session invalidated
+      isolate({
+        if (currentPage() != "main") {
+          currentPage("main")
+        }
+      })
+    }
+  })
+  
   # ============================================================================
   # Navigation State
   # ============================================================================
   currentPage <- reactiveVal("main")
   userData    <- reactiveVal("")
   user_id     <- reactiveVal(NULL)
+  access_token <- reactiveVal(NULL)  # Store JWT access token
   
-  observeEvent(input$loginBtn,    { currentPage("login")    })
-  observeEvent(input$registerBtn, { currentPage("register") })
-  observeEvent(input$backBtn,     { currentPage("main")     })
-  observeEvent(input$logoutBtn,   { currentPage("main")     })
+  # Observe auth token changes and store it
+  observe({
+    if (!is.null(auth$access_token)) {
+      access_token(auth$access_token)
+    }
+  })
+  
+  # Handle logout - clear auth and navigate to main
+  observeEvent(input$logoutBtn, {
+    # Clear tokens from browser localStorage FIRST
+    session$sendCustomMessage("clearAuthToken", list())
+    
+    # Reset auth module state
+    auth$authenticated <- FALSE
+    auth$user_info <- NULL
+    auth$access_token <- NULL
+    auth$id_token <- NULL
+    
+    # Clear local state
+    userData("")
+    user_id(NULL)
+    access_token(NULL)
+    
+    # Navigate to main page
+    currentPage("main")
+  })
+  
+  # Keep backward compatibility
+  observeEvent(input$backBtn, { currentPage("main") })
   
   # ============================================================================
   # Dynamic Top-Level UI
   # ============================================================================
-  output$dynamicContent <- renderUI({
-    req(currentPage())
-    tagList(
-      
-      if (identical(currentPage(), "main")) tagList(
+output$dynamicContent <- renderUI({
+  page <- currentPage()
+  req(page)
+  
+  # If authenticated but on main page, redirect to account
+  # BUT only if we're not in the middle of a logout
+  if (isTRUE(auth$authenticated) && !is.null(auth$user_info) && identical(page, "main")) {
+    isolate(currentPage("account"))
+    return(NULL)
+  }
+  
+  # If not authenticated and trying to access account, redirect to main
+  if (!isTRUE(auth$authenticated) && identical(page, "account")) {
+    isolate(currentPage("main"))
+    return(NULL)
+  }
+  
+  tagList(
+    if (identical(page, "main")) {
+      # Show Cognito login when not authenticated
+      tagList(
         tags$div(
           class = "gbads-hero",
           tags$div(
@@ -48,22 +127,20 @@ function(input, output, session) {
             ),
             h3(class = "gbads-hero__subtitle", "Model Builder"),
             h3("Access Your Custom Models and Dashboards."),
-            h5("Easily view and manage model outputs, and create custom, dashboard-style reports."),
-            div(class = "gbads-cta", 
-                actionButton("loginBtn", "Login", class = "darkBtn"), 
-                actionButton("registerBtn", "Register", class = "lightBtn")
-                )
+            # Use Cognito auth UI
+            cognitoAuthUI("auth")
           ),
           tags$div(
             class = "gbads-hero__image",
             img(src = "albert.png", alt = "GBADs Mascot")
           )
         )
-        ),
-      
-      switch(
-        currentPage(),
-        # Main
+      )
+    },
+    
+    switch(
+      page,
+      # Main page cases go here
         "main" = tagList(),
         
         # Login
@@ -322,10 +399,10 @@ function(input, output, session) {
   metadata_table <- reactiveVal(data.frame())
   
   refresh_metadata_table <- function() {
-    files <- list_metadata_files_from_api(bucket = "inputs", user_id = user_id())
+    files <- list_metadata_files_from_api(bucket = "inputs", user_id = user_id(), token = access_token())
     if (is.null(files) || !length(files)) { metadata_table(data.frame()); return(invisible(NULL)) }
     
-    out_raw <- tryCatch(list_outputs_files_from_api(bucket = "outputs", user_id = user_id()), error = function(e) NULL)
+    out_raw <- tryCatch(list_outputs_files_from_api(bucket = "outputs", user_id = user_id(), token = access_token()), error = function(e) NULL)
     output_bases <- character(0)
     if (!is.null(out_raw) && length(out_raw)) {
       out_vec <- if (is.character(out_raw)) {
@@ -345,7 +422,7 @@ function(input, output, session) {
     esc_rx <- function(x) gsub("([][{}()+*^$|\\.?\\\\-])", "\\\\\\1", x)
     
     rows <- lapply(files, function(f) {
-      meta <- download_json_from_api(bucket = "inputs", user_id = user_id(), file_name = f)
+      meta <- download_json_from_api(bucket = "inputs", user_id = user_id(), file_name = f, token = access_token())
       if (is.null(meta)) return(NULL)
       
       model_name   <- or_default(meta$model_name, gsub("_metadata\\.json$", "", f, ignore.case = TRUE))
@@ -507,7 +584,7 @@ function(input, output, session) {
       }
       if (!nzchar(uid)) { write_manifest_zip(file, "No user_id available."); return(invisible()) }
       
-      raw_list <- try(list_files_from_api("outputs", uid), silent = TRUE)
+      raw_list <- try(list_files_from_api("outputs", uid, token = access_token()), silent = TRUE)
       if (inherits(raw_list, "try-error") || is.null(raw_list)) {
         write_manifest_zip(file, sprintf("Could not list outputs for user_id=%s.", uid))
         return(invisible())
@@ -549,7 +626,7 @@ function(input, output, session) {
       wrote_any <- FALSE
       failed    <- character(0)
       for (bn in wanted_bns) {
-        df <- try(download_csv_from_api(bucket = "outputs", user_id = uid, file_name = bn), silent = TRUE)
+        df <- try(download_csv_from_api(bucket = "outputs", user_id = uid, file_name = bn, token = access_token()), silent = TRUE)
         if (inherits(df, "try-error") || is.null(df)) { failed <- c(failed, bn); next }
         utils::write.csv(as.data.frame(df, stringsAsFactors = FALSE), file = file.path(td, bn), row.names = FALSE, na = "")
         wrote_any <- TRUE
@@ -624,13 +701,13 @@ function(input, output, session) {
     
     if (length(outs_basenames)) {
       for (fn in outs_basenames) {
-        ok <- try(delete_file_from_api(bucket = "outputs", user_id = uid, file_name = fn), silent = TRUE)
+        ok <- try(delete_file_from_api(bucket = "outputs", user_id = uid, file_name = fn, token = access_token()), silent = TRUE)
         if (inherits(ok, "try-error") || isFALSE(ok)) failed <- c(failed, paste0("outputs/", fn)) else deleted <- deleted + 1L
       }
     }
     
     for (fn in input_files) {
-      ok <- try(delete_file_from_api(bucket = "inputs", user_id = uid, file_name = fn), silent = TRUE)
+      ok <- try(delete_file_from_api(bucket = "inputs", user_id = uid, file_name = fn, token = access_token()), silent = TRUE)
       if (inherits(ok, "try-error") || isFALSE(ok)) failed <- c(failed, paste0("inputs/", fn)) else deleted <- deleted + 1L
     }
     
@@ -653,7 +730,7 @@ function(input, output, session) {
     uid <- isolate(user_id())
     if (is.null(uid) || is.na(uid)) { scenario_files(character(0)); return(invisible(NULL)) }
     
-    out <- tryCatch(list_files_from_api(bucket = "storage", user_id = uid), error = function(e) NULL)
+    out <- tryCatch(list_files_from_api(bucket = "storage", user_id = uid, token = isolate(access_token())), error = function(e) NULL)
     if (is.null(out) || length(out) == 0) { scenario_files(character(0)); return(invisible(NULL)) }
     
     files <- if (is.character(out)) {
@@ -759,7 +836,7 @@ function(input, output, session) {
     note_id <- showNotification("Deleting…", type = "message", duration = NULL)
     on.exit({ removeNotification(note_id); if (requireNamespace("shinyjs", quietly = TRUE)) shinyjs::enable("confirm_delete_scn") }, add = TRUE)
     
-    ok <- delete_file_from_api(bucket = "storage", user_id = user_id(), file_name = fn)
+    ok <- delete_file_from_api(bucket = "storage", user_id = user_id(), file_name = fn, token = access_token())
     if (isTRUE(ok)) {
       showNotification(sprintf("Deleted “%s”.", fn), type = "message")
       refresh_scenario_files()
@@ -880,7 +957,7 @@ function(input, output, session) {
     req(user_id())
     refreshTrigger()
     
-    files <- tryCatch(list_files_from_api("storage", user_id()), error = function(e) NULL)
+    files <- tryCatch(list_files_from_api("storage", user_id(), token = access_token()), error = function(e) NULL)
     empty_named <- list(all = setNames(character(0), character(0)))
     if (is.null(files) || length(files) == 0) return(empty_named)
     
@@ -983,7 +1060,8 @@ function(input, output, session) {
         bucket = "storage",
         user_id = user_id(),
         file_name = uploaded_file$name,
-        yaml_object = yaml_obj
+        yaml_object = yaml_obj,
+        token = access_token()
       ),
       error = function(e) FALSE
     )
@@ -1008,7 +1086,7 @@ function(input, output, session) {
   existingModels <- reactive({
     req(user_id())
     empty_named <- list(all = setNames(character(0), character(0)))
-    files <- tryCatch(list_files_from_api("inputs", user_id()), error = function(e) NULL)
+    files <- tryCatch(list_files_from_api("inputs", user_id(), token = access_token()), error = function(e) NULL)
     if (is.null(files) || length(files) == 0) return(empty_named)
     
     keys <- NULL
@@ -1126,13 +1204,13 @@ function(input, output, session) {
     if (!is.null(input$newCurrentUpload)) {
       current_yaml <- yaml::read_yaml(input$newCurrentUpload$datapath)
       original_current_name <- input$newCurrentUpload$name
-      success <- upload_yaml_to_api("storage", user_id(), original_current_name, current_yaml)
+      success <- upload_yaml_to_api("storage", user_id(), original_current_name, current_yaml, token = access_token())
       if (!success) { sendSweetAlert(session, "Upload Error", "Error uploading your Current file to the cloud.", "error"); return() }
     } else {
       selected_file <- input$existingCurrentModel
       if (is.null(selected_file) || selected_file == "") { missingTemplatesWarning(TRUE); return() }
       original_current_name <- basename(selected_file)
-      current_yaml <- download_yaml_from_api("storage", user_id(), original_current_name)
+      current_yaml <- download_yaml_from_api("storage", user_id(), original_current_name, token = access_token())
       if (is.null(current_yaml)) { sendSweetAlert(session, "Load Error", "Error loading your Current YAML from the cloud.", "error"); return() }
     }
     
@@ -1140,13 +1218,13 @@ function(input, output, session) {
     if (!is.null(input$newIdealUpload)) {
       ideal_yaml <- yaml::read_yaml(input$newIdealUpload$datapath)
       original_ideal_name <- input$newIdealUpload$name
-      success <- upload_yaml_to_api("storage", user_id(), original_ideal_name, ideal_yaml)
+      success <- upload_yaml_to_api("storage", user_id(), original_ideal_name, ideal_yaml, token = access_token())
       if (!success) { sendSweetAlert(session, "Upload Error", "Error uploading your Ideal file to the cloud.", "error"); return() }
     } else {
       selected_file <- input$existingIdealModel
       if (is.null(selected_file) || selected_file == "") { missingTemplatesWarning(TRUE); return() }
       original_ideal_name <- basename(selected_file)
-      ideal_yaml <- download_yaml_from_api("storage", user_id(), original_ideal_name)
+      ideal_yaml <- download_yaml_from_api("storage", user_id(), original_ideal_name, token = access_token())
       if (is.null(ideal_yaml)) { sendSweetAlert(session, "Load Error", "Error loading your Ideal YAML from the cloud.", "error"); return() }
     }
     
@@ -1160,10 +1238,10 @@ function(input, output, session) {
     zmorb_name_simplified   <- paste0(model_name, "_zeroMorbidity.yaml")
     
     upload_success <- c(
-      upload_yaml_to_api("inputs", user_id(), current_name_simplified, current_yaml),
-      upload_yaml_to_api("inputs", user_id(), ideal_name_simplified,   ideal_yaml),
-      upload_yaml_to_api("inputs", user_id(), zmort_name_simplified,   zero_mort),
-      upload_yaml_to_api("inputs", user_id(), zmorb_name_simplified,   zero_morb)
+      upload_yaml_to_api("inputs", user_id(), current_name_simplified, current_yaml, token = access_token()),
+      upload_yaml_to_api("inputs", user_id(), ideal_name_simplified,   ideal_yaml, token = access_token()),
+      upload_yaml_to_api("inputs", user_id(), zmort_name_simplified,   zero_mort, token = access_token()),
+      upload_yaml_to_api("inputs", user_id(), zmorb_name_simplified,   zero_morb, token = access_token())
     )
     if (any(!upload_success)) { sendSweetAlert(session, "Upload Error", "One or more YAML files could not be uploaded to the cloud.", "error"); return() }
     
@@ -1183,7 +1261,7 @@ function(input, output, session) {
     )
     
     meta_file_name <- paste0(model_name, "_metadata.json")
-    meta_ok <- upload_json_to_api("inputs", user_id(), meta_file_name, meta)
+    meta_ok <- upload_json_to_api("inputs", user_id(), meta_file_name, meta, token = access_token())
     if (!meta_ok) { sendSweetAlert(session, "Upload Error", "Metadata file could not be uploaded to the cloud.", "error"); return() }
     
     removeModal()

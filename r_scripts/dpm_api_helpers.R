@@ -10,7 +10,15 @@ library(yaml)
 # Auth (DO NOT COMMIT SECRETS)
 # ==============================================================================
 auth_token <- Sys.getenv("DPM_AUTH_TOKEN", unset = "")
-headers    <- httr::add_headers(Authorization = paste("Bearer", auth_token))
+
+# Helper to get headers with optional token override
+.get_headers <- function(token = NULL) {
+  if (!is.null(token) && nzchar(token)) {
+    httr::add_headers(Authorization = paste("Bearer", token))
+  } else {
+    httr::add_headers(Authorization = paste("Bearer", auth_token))
+  }
+}
 
 # ==============================================================================
 # Helpers
@@ -23,9 +31,9 @@ headers    <- httr::add_headers(Authorization = paste("Bearer", auth_token))
 # ==============================================================================
 # Users
 # ==============================================================================
-get_user_info <- function(user_id) {
+get_user_info <- function(user_id, token = NULL) {
   url <- paste0(.api_base, "/user/", user_id)
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) == 200) {
     httr::content(res, "parsed", simplifyVector = TRUE)
   } else {
@@ -34,7 +42,7 @@ get_user_info <- function(user_id) {
   }
 }
 
-create_user <- function(firstname, lastname, email, country, language, role) {
+create_user <- function(firstname, lastname, email, country, language, role, token = NULL) {
   url  <- paste0(.api_base, "/user")
   body <- list(
     user_firstname = firstname,
@@ -46,7 +54,7 @@ create_user <- function(firstname, lastname, email, country, language, role) {
   )
   res <- httr::POST(
     url,
-    headers,
+    .get_headers(token),
     httr::add_headers(Accept = "application/json", `Content-Type` = "application/json"),
     body = body,
     encode = "json"
@@ -92,9 +100,9 @@ create_user <- function(firstname, lastname, email, country, language, role) {
   }
 }
 
-delete_user <- function(user_id) {
+delete_user <- function(user_id, token = NULL) {
   url <- paste0(.api_base, "/user/", user_id)
-  res <- httr::DELETE(url, headers, httr::add_headers(Accept = "application/json"))
+  res <- httr::DELETE(url, .get_headers(token), httr::add_headers(Accept = "application/json"))
   httr::stop_for_status(res)
   ct <- httr::headers(res)[["content-type"]]
   if (!is.null(ct) && grepl("application/json", ct, ignore.case = TRUE)) {
@@ -107,7 +115,7 @@ delete_user <- function(user_id) {
 # ==============================================================================
 # Object Delete
 # ==============================================================================
-delete_file_from_api <- function(bucket, user_id = NULL, file_name) {
+delete_file_from_api <- function(bucket, user_id = NULL, file_name, token = NULL) {
   stopifnot(is.character(bucket), nzchar(bucket), is.character(file_name), nzchar(file_name))
   bucket_name <- .bucket_name(bucket)
   
@@ -124,7 +132,7 @@ delete_file_from_api <- function(bucket, user_id = NULL, file_name) {
       bucket_name = bucket_name,
       object_name = object_name
     ),
-    headers
+    .get_headers(token)
   )
   
   code <- httr::status_code(res)
@@ -141,7 +149,7 @@ delete_file_from_api <- function(bucket, user_id = NULL, file_name) {
 # ==============================================================================
 # Listing
 # ==============================================================================
-list_files_from_api <- function(bucket, user_id = NULL) {
+list_files_from_api <- function(bucket, user_id = NULL, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   url <- paste0(.api_base, "/list?bucket_name=", utils::URLencode(bucket_name, reserved = TRUE))
   if (!is.null(user_id)) {
@@ -151,7 +159,7 @@ list_files_from_api <- function(bucket, user_id = NULL) {
       utils::URLencode(.user_prefix(user_id), reserved = TRUE)
     )
   }
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) == 200) {
     httr::content(res, "parsed", simplifyVector = TRUE)
   } else {
@@ -159,14 +167,14 @@ list_files_from_api <- function(bucket, user_id = NULL) {
   }
 }
 
-list_outputs_files_from_api <- function(bucket, user_id) {
+list_outputs_files_from_api <- function(bucket, user_id, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   url <- paste0(
     .api_base, "/list?",
     "bucket_name=", utils::URLencode(bucket_name, reserved = TRUE),
     "&prefix=",     utils::URLencode(.user_prefix(user_id), reserved = TRUE)
   )
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) != 200) return(character(0))
   
   out <- tryCatch(
@@ -184,14 +192,14 @@ list_outputs_files_from_api <- function(bucket, user_id) {
   basename(files)
 }
 
-list_metadata_files_from_api <- function(bucket, user_id) {
+list_metadata_files_from_api <- function(bucket, user_id, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   url <- paste0(
     .api_base, "/list?",
     "bucket_name=", utils::URLencode(bucket_name, reserved = TRUE),
     "&prefix=",     utils::URLencode(.user_prefix(user_id), reserved = TRUE)
   )
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) != 200) return(character(0))
   
   out <- tryCatch(
@@ -214,7 +222,7 @@ list_metadata_files_from_api <- function(bucket, user_id) {
 # ==============================================================================
 # Downloads
 # ==============================================================================
-download_yaml_from_api <- function(bucket, user_id, file_name) {
+download_yaml_from_api <- function(bucket, user_id, file_name, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   object_name <- paste0(.user_prefix(user_id), file_name)
   url <- paste0(
@@ -223,7 +231,7 @@ download_yaml_from_api <- function(bucket, user_id, file_name) {
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
   
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) != 200) return(NULL)
   
   raw_data  <- httr::content(res, "raw")
@@ -231,7 +239,7 @@ download_yaml_from_api <- function(bucket, user_id, file_name) {
   yaml::yaml.load(yaml_text)
 }
 
-get_yaml_text_from_api <- function(bucket, user_id, file_name) {
+get_yaml_text_from_api <- function(bucket, user_id, file_name, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   object_name <- paste0(.user_prefix(user_id), file_name)
   url <- paste0(
@@ -239,7 +247,7 @@ get_yaml_text_from_api <- function(bucket, user_id, file_name) {
     "bucket_name=", utils::URLencode(bucket_name, reserved = TRUE),
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) == 200) {
     raw <- httr::content(res, "raw")
     rawToChar(raw)
@@ -248,7 +256,7 @@ get_yaml_text_from_api <- function(bucket, user_id, file_name) {
   }
 }
 
-download_json_from_api <- function(bucket, user_id, file_name) {
+download_json_from_api <- function(bucket, user_id, file_name, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   object_name <- paste0(.user_prefix(user_id), file_name)
   url <- paste0(
@@ -257,7 +265,7 @@ download_json_from_api <- function(bucket, user_id, file_name) {
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
   
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) != 200) return(NULL)
   
   raw_data  <- httr::content(res, "raw")
@@ -265,7 +273,7 @@ download_json_from_api <- function(bucket, user_id, file_name) {
   jsonlite::fromJSON(json_text, simplifyVector = FALSE)
 }
 
-download_csv_from_api <- function(bucket, user_id, file_name) {
+download_csv_from_api <- function(bucket, user_id, file_name, token = NULL) {
   bucket_name <- .bucket_name(bucket)
   object_name <- paste0(.user_prefix(user_id), file_name)
   url <- paste0(
@@ -274,7 +282,7 @@ download_csv_from_api <- function(bucket, user_id, file_name) {
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
   
-  res <- httr::GET(url, headers)
+  res <- httr::GET(url, .get_headers(token))
   if (httr::status_code(res) != 200) return(NULL)
   
   raw_data <- httr::content(res, "raw")
@@ -292,7 +300,7 @@ download_csv_from_api <- function(bucket, user_id, file_name) {
 # ==============================================================================
 # Uploads
 # ==============================================================================
-upload_yaml_to_api <- function(bucket, user_id, file_name, yaml_object) {
+upload_yaml_to_api <- function(bucket, user_id, file_name, yaml_object, token = NULL) {
   yaml_text <- as.yaml(yaml_object)
   tmp_file  <- tempfile(fileext = ".yaml")
   writeLines(yaml_text, tmp_file)
@@ -305,7 +313,7 @@ upload_yaml_to_api <- function(bucket, user_id, file_name, yaml_object) {
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
   
-  res <- httr::POST(url = url, body = list(file = httr::upload_file(tmp_file)), headers)
+  res <- httr::POST(url = url, body = list(file = httr::upload_file(tmp_file)), .get_headers(token))
   if (httr::status_code(res) %in% 200:299) {
     cat("YAML uploaded successfully:", file_name, "\n")
     TRUE
@@ -315,7 +323,7 @@ upload_yaml_to_api <- function(bucket, user_id, file_name, yaml_object) {
   }
 }
 
-upload_json_to_api <- function(bucket, user_id, file_name, json_object) {
+upload_json_to_api <- function(bucket, user_id, file_name, json_object, token = NULL) {
   json_txt <- jsonlite::toJSON(json_object, auto_unbox = TRUE, pretty = TRUE)
   tmp_file <- tempfile(fileext = ".json")
   writeLines(json_txt, tmp_file)
@@ -329,7 +337,7 @@ upload_json_to_api <- function(bucket, user_id, file_name, json_object) {
     "&object_name=", utils::URLencode(object_name, reserved = TRUE)
   )
   
-  res <- httr::POST(url = url, body = list(file = httr::upload_file(tmp_file)), headers)
+  res <- httr::POST(url = url, body = list(file = httr::upload_file(tmp_file)), .get_headers(token))
   if (httr::status_code(res) %in% 200:299) {
     cat("JSON uploaded successfully:", file_name, "\n")
     TRUE

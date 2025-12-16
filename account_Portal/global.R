@@ -9,6 +9,7 @@ library(ggplot2)
 library(ggrepel)
 library(httr)
 library(ISOcodes)
+library(jose)
 library(jsonlite)
 library(plotly)
 library(purrr)
@@ -23,6 +24,21 @@ library(shinyWidgets)
 library(stringr)
 library(yaml)
 library(doParallel)
+
+# ------------------------------------------------------------------------------
+# Authentication Configuration
+# ------------------------------------------------------------------------------
+COGNITO_CONFIG <- list(
+  domain = "login.gbadske.org",
+  client_id = "4oui4vurob4s8h0c6ulgderq59",
+  redirect_uri = if (Sys.getenv("ENV") == "PROD") {
+    # Production URL when deployed
+    "https://gbadske.org/account-portal/"
+  } else {
+    # Local development (Docker or localhost)
+    "http://localhost/account-portal/"
+  }
+)
 
 countries <- ISOcodes::ISO_3166_1$Name
 languages <- ISOcodes::ISO_639_2$Name
@@ -44,6 +60,7 @@ source("./Functions/ahlePreprocessing.R")
 # Source Modules                 
 # ------------------------------------------------------------------------------
 source("./Modules/outputDashboardModule.R")
+source("./Modules/cognitoAuthModule.R")
 source("./Modules/cellContentModule.R")
 
 # ------------------------------------------------------------------------------
@@ -97,6 +114,9 @@ loadData <- function(filePath) {
   }
 }
 
+COGNITO_DOMAIN <- "login.gbadske.org"  # Your custom domain
+COGNITO_CLIENT_ID <- "4oui4vurob4s8h0c6ulgderq59"  # Your client ID
+COGNITO_REDIRECT_URI <- "http://localhost/account-portal/"  # Update for production
 
 # Clean dropdown menu labels ----------------------------------------------
 plot_list_single_run <- list(

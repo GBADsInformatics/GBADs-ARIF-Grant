@@ -1,4 +1,13 @@
 fluidPage(
+  tags$head(
+    tags$script(src = "js/cognito-auth.js"),
+    tags$title("GBADs Model Builder | Account Portal"),
+    tags$link(rel = "icon", type = "image/png", href = "/account-portal/favicon-96x96.png", sizes = "96x96"),
+    tags$link(rel = "icon", type = "image/svg+xml", href = "/account-portal/favicon.svg"),
+    tags$link(rel = "shortcut icon", href = "/account-portal/favicon.ico"),
+    tags$link(rel = "apple-touch-icon", sizes = "180x180", href = "/account-portal/apple-touch-icon.png"),
+    tags$link(rel = "manifest", href = "/account-portal/site.webmanifest")
+  ),
   includeCSS("styles.css"),
   use_googlefont("raleway"),
   useShinyjs(),
