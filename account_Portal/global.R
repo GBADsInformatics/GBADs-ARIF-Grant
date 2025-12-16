@@ -30,8 +30,8 @@ library(doParallel)
 # ------------------------------------------------------------------------------
 COGNITO_CONFIG <- list(
   domain = "login.gbadske.org",
-  client_id = "4oui4vurob4s8h0c6ulgderq59",
-  redirect_uri = if (Sys.getenv("ENV") == "PROD") {
+  client_id = Sys.getenv("COGNITO_CLIENT_ID"),
+  redirect_uri = if (Sys.getenv("ENV", unset = "DEV") == "PROD") {
     # Production URL when deployed
     "https://gbadske.org/account-portal/"
   } else {
@@ -113,10 +113,6 @@ loadData <- function(filePath) {
     return(NULL)
   }
 }
-
-COGNITO_DOMAIN <- "login.gbadske.org"  # Your custom domain
-COGNITO_CLIENT_ID <- "4oui4vurob4s8h0c6ulgderq59"  # Your client ID
-COGNITO_REDIRECT_URI <- "http://localhost/account-portal/"  # Update for production
 
 # Clean dropdown menu labels ----------------------------------------------
 plot_list_single_run <- list(
